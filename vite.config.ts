@@ -35,7 +35,12 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ mode }) => {
+  // Deployment builds receive secrets only from the hosted Worker environment.
+  if (mode === "cloudflare") {
+    process.env.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV = "false";
+    process.env.CLOUDFLARE_INCLUDE_PROCESS_ENV = "false";
+  }
   // Use Miniflare's local Request.cf placeholder unless fetching is requested.
   process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
   process.env.WRANGLER_SEND_METRICS ??= "false";
@@ -61,7 +66,9 @@ export default defineConfig(async () => {
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
-        config: localBindingConfig,
+        ...(mode === "cloudflare"
+          ? { configPath: "wrangler.cloudflare.jsonc" }
+          : { config: localBindingConfig }),
       }),
     ],
   };

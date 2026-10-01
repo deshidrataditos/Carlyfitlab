@@ -7,10 +7,10 @@ La atención es en línea y presencial en La Barca, Jalisco. Los productos puede
 ## Estado de la integración
 
 - El sitio y el carrito están implementados. Los pedidos por WhatsApp permiten solicitar recolección o cotización de envío.
-- Supabase almacena cuentas, perfiles, testimonios y promociones. El acceso con Google se verificó en la vista local; debe configurarse y comprobarse de nuevo en la dirección pública.
+- Supabase almacena cuentas, perfiles, testimonios y promociones. El acceso con Google se verificó en la vista local. Supabase y Google ya tienen guardadas las direcciones del dominio propio; faltan completar la configuración de marca y las pruebas de acceso público.
 - Checkout Pro de Mercado Pago y su receptor de notificaciones están implementados. Los cobros permanecen desactivados y el modo predeterminado es de prueba.
-- La activación de pagos requiere una dirección HTTPS pública, la base D1 de pedidos, las credenciales del entorno y la firma de Webhooks. No se ha completado una compra de extremo a extremo.
-- La dirección pública provisional y el dominio propio se definirán al publicar. Subir el código a GitHub no activa el alojamiento ni los pagos.
+- La dirección HTTPS pública, la base D1 de pedidos y las credenciales del vendedor de prueba ya están preparadas. Faltan la firma de Webhooks, confirmar el catálogo y completar una compra de extremo a extremo en pruebas antes de activar cobros reales.
+- Publicación en Cloudflare con dominio propio: https://carlyfitlab.com. `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros. Los pagos y el acceso público con Google permanecen desactivados.
 
 Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaciones y pendientes, y [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md) para la configuración de Google.
 
@@ -61,22 +61,33 @@ La migración de miembros ya está aplicada al proyecto Supabase de Carlyfit Lab
 
 `.gitignore` excluye credenciales locales, dependencias, compilaciones, estado de herramientas y capturas de trabajo. La carpeta `build/` contiene código fuente necesario del complemento de Vite y sí forma parte del proyecto.
 
-## Publicación provisional
+## Publicación
 
-El proyecto necesita un alojamiento compatible con Cloudflare Workers y D1, como el flujo de Sites preparado en `.openai/hosting.json`. GitHub Pages no ejecuta las rutas de servidor que usa esta tienda.
+El sitio está desplegado como el Worker `carlyfit-lab`. La base D1 `carlyfit-lab-orders` está conectada a `DB` y tiene aplicada la migración inicial. `wrangler.cloudflare.jsonc` conserva la configuración de publicación; la vista local mantiene su configuración independiente. GitHub Pages no ejecuta las rutas de servidor que usa esta tienda.
 
-Para publicar, registrar o vincular el proyecto existente, compilar y desplegar el Worker, conectar el binding `DB` y aplicar la migración de pedidos. El identificador de D1 de la configuración local es un marcador; debe resolverse mediante el alojamiento. Mantener los cobros desactivados hasta completar la configuración y las pruebas.
+El 1 de octubre de 2026 se verificó que `https://carlyfitlab.com` responde correctamente y que `www` y la dirección anterior de Cloudflare devuelven una redirección permanente `308`. `SITE_URL` utiliza `https://carlyfitlab.com`. Supabase tiene guardados ese **Site URL** y el retorno exacto `https://carlyfitlab.com/auth/callback`; conserva también el retorno local para desarrollo.
 
-Con la dirección pública confirmada:
+Para actualizarlo desde una sesión autorizada de Cloudflare:
 
-1. Configurar las variables del servidor en el alojamiento y establecer `SITE_URL` con el origen HTTPS real.
-2. Actualizar la Site URL de Supabase y permitir el retorno de la tienda en `/auth/callback`. Revisar la configuración de Google y probar registro, cierre y nuevo acceso en esa dirección.
-3. Configurar las notificaciones de Mercado Pago como se indica debajo.
-4. Confirmar catálogo, precios, entrega, ingredientes, alérgenos, conservación y aviso de privacidad antes de habilitar compras y registro público.
+```sh
+npm run deploy:cloudflare
+```
+
+Este comando compila con el modo `cloudflare` y despliega el archivo generado `dist/server/wrangler.json`. La compilación de publicación no copia las claves del `.env` local. Los secretos se configuran en el servidor mediante Cloudflare; los valores de seguridad mantienen los pagos desactivados. La conexión automática entre GitHub y Cloudflare no está configurada: subir un commit no publica por sí solo una versión nueva.
+
+Cuando se activen Google o los pagos, actualizar también los indicadores explícitos de `wrangler.cloudflare.jsonc`: `keep_vars` no conserva un valor del panel que contradiga esos indicadores al desplegar.
+
+Si se añaden migraciones, aplicarlas antes del despliegue con `npx wrangler d1 migrations apply DB --remote --config wrangler.cloudflare.jsonc`.
+
+Pendientes de activación:
+
+1. Completar la configuración de marca y audiencia de Google, y probar registro, cierre y nuevo acceso en el dominio propio. El origen `https://carlyfitlab.com` ya está guardado y verificado en Google.
+2. Configurar las notificaciones de Mercado Pago como se indica debajo.
+3. Confirmar catálogo, precios, entrega, ingredientes, alérgenos, conservación y aviso de privacidad antes de habilitar compras y registro público.
 
 ## Webhooks de Mercado Pago
 
-El receptor de esta aplicación es **`/api/payments/webhook`**. La URL completa será la dirección HTTPS publicada de la tienda seguida de esa ruta. No uses la dirección del repositorio de GitHub ni `localhost`.
+La URL del receptor es **`https://carlyfitlab.com/api/payments/webhook`**. La tienda ya responde por HTTPS. No uses la dirección del repositorio de GitHub, la dirección provisional ni `localhost`.
 
 En Mercado Pago Developers:
 
@@ -99,6 +110,7 @@ El servidor valida la firma, consulta el pago en Mercado Pago y contrasta recept
 | `public/images/` | Logo, fotografía y recursos de la tienda |
 | `app/api/checkout/route.ts` | Creación de preferencias de pago |
 | `app/api/payments/webhook/route.ts` | Recepción y conciliación de notificaciones |
+| `proxy.ts` | Redirección de `www` y la dirección provisional al dominio principal |
 | `supabase/` | Migración, políticas y administración de miembros |
 | `drizzle/` | Migraciones de D1 |
 | `tests/` | Comprobaciones de comercio, checkout y miembros |
