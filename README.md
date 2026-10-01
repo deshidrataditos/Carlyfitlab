@@ -9,7 +9,7 @@ La atención es en línea y presencial en La Barca, Jalisco. Los productos puede
 - El sitio y el carrito están implementados. Los pedidos por WhatsApp permiten solicitar recolección o cotización de envío.
 - Supabase almacena cuentas, perfiles, testimonios y promociones. El acceso con Google se verificó en la vista local. Supabase y Google ya tienen guardadas las direcciones del dominio propio; faltan completar la configuración de marca y las pruebas de acceso público.
 - Checkout Pro de Mercado Pago y su receptor de notificaciones están implementados. Los cobros permanecen desactivados y el modo predeterminado es de prueba.
-- La dirección HTTPS pública, la base D1 de pedidos y las credenciales del vendedor de prueba ya están preparadas. Faltan la firma de Webhooks, confirmar el catálogo y completar una compra de extremo a extremo en pruebas antes de activar cobros reales.
+- La dirección HTTPS pública, la base D1 de pedidos, las credenciales del vendedor de prueba y el secreto de Webhooks ya están configurados. Una notificación del simulador pasó la validación de firma el 1 de octubre de 2026; la consulta posterior devolvió `404` porque su ID ficticio no corresponde a un pago. Faltan confirmar el catálogo y completar una compra de extremo a extremo en pruebas antes de activar cobros reales.
 - Publicación en Cloudflare con dominio propio: https://carlyfitlab.com. `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros. Los pagos y el acceso público con Google permanecen desactivados.
 
 Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaciones y pendientes, y [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md) para la configuración de Google.
@@ -41,7 +41,7 @@ La dirección habitual es `http://localhost:5173`. Las funciones conectadas requ
 Para comprobar el proyecto y generar la compilación:
 
 ```sh
-node --test tests/commerce.test.mjs tests/checkout.test.mjs tests/members.test.mjs
+node --test tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs
 node node_modules/typescript/bin/tsc --noEmit
 npm run build
 ```
@@ -89,6 +89,8 @@ Pendientes de activación:
 
 La URL del receptor es **`https://carlyfitlab.com/api/payments/webhook`**. La tienda ya responde por HTTPS. No uses la dirección del repositorio de GitHub, la dirección provisional ni `localhost`.
 
+Verificado el 1 de octubre de 2026: URL de prueba guardada en Mercado Pago y evento **Pagos (legacy)** seleccionado; el simulador lo denomina **Pagos** y envía `type=payment`. La URL de producción permanece vacía. La firma del simulador se validó con el secreto del Worker; su ID `123456` produjo `404` al consultar la API, por lo que la respuesta al simulador fue `503` y no se acreditó ningún pago. La compra completa con comprador de prueba sigue pendiente.
+
 En Mercado Pago Developers:
 
 1. Abre **Tus integraciones**, selecciona la aplicación de Carlyfit Lab y entra en **Webhooks → Configurar notificaciones**.
@@ -97,7 +99,9 @@ En Mercado Pago Developers:
 
 Los nombres y pasos del panel se basan en la [documentación oficial de Webhooks](https://www.mercadopago.com.mx/developers/en/docs/checkout-pro-preferences/additional-content/notifications/webhooks). La integración también envía esta ruta al crear cada preferencia.
 
-El receptor devuelve `503` mientras falte configuración o D1, y rechaza firmas inválidas. Después de configurar el entorno y confirmar el catálogo, habilitar las pruebas con `CATALOG_CONFIRMED=true`, `PAYMENTS_ENABLED=true` y `MERCADOPAGO_MODE=test`. Verificar pagos aprobados, pendientes y rechazados, y una notificación repetida, con comprador y vendedor de prueba distintos. No cambiar a `live` hasta completar esas comprobaciones y preparar las credenciales de producción.
+El receptor funciona independientemente de `PAYMENTS_ENABLED` y `CATALOG_CONFIRMED`, para poder conciliar pagos existentes aunque se suspendan nuevas compras. Devuelve `503` mientras falte configuración o D1, y `401` para firmas inválidas. Los errores al consultar Mercado Pago conservan `503` para permitir reintentos; los registros incluyen únicamente la etiqueta del error y el estado HTTP, nunca el token ni el cuerpo de la respuesta. Un identificador inventado del simulador no equivale a un pago de prueba existente.
+
+Después de configurar el entorno y confirmar el catálogo, habilitar las pruebas de checkout con `CATALOG_CONFIRMED=true`, `PAYMENTS_ENABLED=true` y `MERCADOPAGO_MODE=test`. Verificar pagos aprobados, pendientes y rechazados, y una notificación repetida, con comprador y vendedor de prueba distintos. No cambiar a `live` hasta completar esas comprobaciones y preparar las credenciales de producción.
 
 El servidor valida la firma, consulta el pago en Mercado Pago y contrasta receptor, importe, moneda y modo antes de actualizar el pedido. Volver a la página de confirmación no acredita el cobro. Los productos físicos de esta primera integración se cobran para recolección; los envíos requieren cotización por WhatsApp.
 

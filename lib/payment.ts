@@ -1,14 +1,23 @@
 // Server-only integration. Never import this module from a client component.
 export type MPConfig={token:string;webhookSecret:string;collectorId:string;origin:string;live:boolean};
+export class MPRequestError extends Error{
+ readonly status:number;
+ constructor(status:number){super(`Mercado Pago request failed (${status}).`);this.name='MPRequestError';this.status=status;}
+}
 export const reconcilePaymentSql="UPDATE orders SET payment_id=?,status=? WHERE id=? AND (payment_id IS NULL OR payment_id=? OR (?='approved' AND status IN ('pending','in_process','rejected','cancelled','authorized')))";
-export function paymentConfig():MPConfig|null{
- const {MERCADOPAGO_ACCESS_TOKEN:token,MERCADOPAGO_WEBHOOK_SECRET:webhookSecret,MERCADOPAGO_COLLECTOR_ID:collectorId,SITE_URL:origin,PAYMENTS_ENABLED:enabled,CATALOG_CONFIRMED:confirmed}=process.env;
- if(enabled!=='true'||confirmed!=='true'||!token||!webhookSecret||!collectorId||!origin)return null;
+// Existing payments must keep receiving updates while new checkouts are disabled.
+export function webhookConfig():MPConfig|null{
+ const {MERCADOPAGO_ACCESS_TOKEN:token,MERCADOPAGO_WEBHOOK_SECRET:webhookSecret,MERCADOPAGO_COLLECTOR_ID:collectorId,SITE_URL:origin}=process.env;
+ if(!token||!webhookSecret||!collectorId||!origin)return null;
  try{const site=new URL(origin);if(site.protocol!=='https:'||site.username||site.password||site.pathname!=='/'||site.search||site.hash)return null;return {token,webhookSecret,collectorId,origin:site.origin,live:process.env.MERCADOPAGO_MODE==='live'};}catch{return null;}
+}
+export function paymentConfig():MPConfig|null{
+ if(process.env.PAYMENTS_ENABLED!=='true'||process.env.CATALOG_CONFIRMED!=='true')return null;
+ return webhookConfig();
 }
 export async function mpRequest<T>(config:MPConfig,path:string,body?:unknown):Promise<T>{
  const response=await fetch(`https://api.mercadopago.com${path}`,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${config.token}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(12000)});
- if(!response.ok)throw new Error(`Mercado Pago request failed (${response.status}).`);
+ if(!response.ok)throw new MPRequestError(response.status);
  return await response.json() as T;
 }
 export async function validWebhook(request:Request,secret:string):Promise<boolean>{
