@@ -1,6 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {catalog,validateCart} from '@/lib/catalog';
-import {paymentConfig,mpRequest} from '@/lib/payment';
+import {paymentConfig,mpRequest,sellerEnvironmentMatches} from '@/lib/payment';
 export async function POST(request:Request){
  const config=paymentConfig();
  if(!config||!env.DB)return Response.json({error:'El pago en línea aún no está activado. Confirma tu pedido por WhatsApp para recibir de Carly el importe final y las indicaciones de pago con Mercado Pago.'},{status:503});
@@ -19,6 +19,7 @@ export async function POST(request:Request){
   if(lines.some(l=>catalog.find(p=>p.id===l.id)!.kind==='product'||l.id==='dulce-90')&&body.delivery!=='pickup')throw new Error('Confirma la entrega de tus productos.');
   const items=lines.map(l=>{const p=catalog.find(p=>p.id===l.id)!;return {id:p.id,title:p.name,quantity:l.quantity,currency_id:'MXN',unit_price:p.price};});
   const amount=items.reduce((n,i)=>n+i.quantity*i.unit_price*100,0);
+  if(!await sellerEnvironmentMatches(config))return Response.json({error:'El pago no está disponible en este momento. Contacta a Carly para verificarlo.'},{status:503});
   const id=crypto.randomUUID();
   await env.DB.prepare('INSERT INTO orders (id,items,amount_cents,currency,delivery,customer_name,status,created_at) VALUES (?,?,?,?,?,?,?,?)').bind(id,JSON.stringify(items),amount,'MXN',body.delivery,typeof body.customer==='string'?body.customer.trim().slice(0,100):'','pending',new Date().toISOString()).run();
   const result=await mpRequest<{id:string;init_point:string}>(config,'/checkout/preferences',{items,external_reference:id,back_urls:{success:`${config.origin}/pedido?order=${id}`,pending:`${config.origin}/pedido?order=${id}`,failure:`${config.origin}/pedido?order=${id}`},auto_return:'approved',notification_url:`${config.origin}/api/payments/webhook`,expires:true,expiration_date_to:new Date(Date.now()+86400000).toISOString()});

@@ -11,13 +11,13 @@ const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.t
 }).outputText;
 const checkoutUrl='https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=test-preference';
 
-function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl}={}){
+function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true}={}){
  const writes=[];const calls=[];const exported={};
  const config=enabled?{origin:'https://shop.example',live}:null;
  const dependencies={
   'cloudflare:workers':{env:{DB:{prepare:sql=>({bind:(...args)=>({run:async()=>{writes.push({sql,args});}})})}}},
   '@/lib/catalog':{catalog,validateCart},
-  '@/lib/payment':{paymentConfig:()=>config,mpRequest:async(...args)=>{
+  '@/lib/payment':{paymentConfig:()=>config,sellerEnvironmentMatches:async()=>sellerMatches,mpRequest:async(...args)=>{
    calls.push(args);
    return {id:'test-preference',init_point:initPoint,sandbox_init_point:'https://sandbox.mercadopago.com.mx/checkout/legacy-test'};
   }},
@@ -59,4 +59,13 @@ test('disabled checkout does not create a preference or write an order',async()=
  assert.equal((await fixture.run()).status,503);
  assert.equal(fixture.calls.length,0);
  assert.equal(fixture.writes.length,0);
+});
+
+test('unverified or mismatched seller cannot create a preference or order',async()=>{
+ for(const live of [false,true]){
+  const fixture=checkoutHarness({live,sellerMatches:false});
+  assert.equal((await fixture.run()).status,503);
+  assert.equal(fixture.calls.length,0);
+  assert.equal(fixture.writes.length,0);
+ }
 });

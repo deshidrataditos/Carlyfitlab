@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "carlyfit-lab-testing",
+  "main": "vinext/server/fetch-handler",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "keep_vars": true,
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "carlyfit-lab-testing-orders",
+      "database_id": "baf321c0-1688-461c-9f6f-8d14327048ff",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "vars": {
+    "SITE_URL": "https://carlyfit-lab-testing.carlyfitlab.workers.dev",
+    "PAYMENTS_ENABLED": "true",
+    "CATALOG_CONFIRMED": "true",
+    "MERCADOPAGO_MODE": "test",
+    "GOOGLE_AUTH_ENABLED": "false",
+    "SITE_TESTING": "true"
+  }
+}

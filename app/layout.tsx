@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#155d69' };
 
-export const metadata: Metadata = {
+const siteMetadata: Metadata = {
   title: "Carlyfit Lab | Entrena, nutre y disfruta",
   description: "Entrenamiento de 90 días, asesoría en nutrición deportiva y postres Carlyfit Lab. Con Carla Judith Fernández Arzate, en línea y en La Barca, Jalisco.",
   other: {
@@ -15,6 +15,15 @@ export const metadata: Metadata = {
   },
 };
 
+export function generateMetadata(): Metadata {
+  return {
+    ...siteMetadata,
+    ...(process.env.SITE_TESTING === "true"
+      ? { robots: { index: false, follow: false, noarchive: true } }
+      : {}),
+  };
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,7 +31,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-MX">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {process.env.SITE_TESTING === "true" && (
+          <div className="border-b border-amber-300 bg-amber-100 px-4 py-3 text-center text-sm font-semibold text-amber-950">
+            ENTORNO DE PRUEBA — No se realizan cobros reales
+          </div>
+        )}
+        {children}
+      </body>
     </html>
   );
 }

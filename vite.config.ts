@@ -36,8 +36,11 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async ({ mode }) => {
+  const cloudflareConfigPath = mode === "cloudflare-testing"
+    ? "wrangler.testing.jsonc"
+    : mode === "cloudflare" ? "wrangler.cloudflare.jsonc" : undefined;
   // Deployment builds receive secrets only from the hosted Worker environment.
-  if (mode === "cloudflare") {
+  if (cloudflareConfigPath) {
     process.env.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV = "false";
     process.env.CLOUDFLARE_INCLUDE_PROCESS_ENV = "false";
   }
@@ -66,8 +69,8 @@ export default defineConfig(async ({ mode }) => {
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
-        ...(mode === "cloudflare"
-          ? { configPath: "wrangler.cloudflare.jsonc" }
+        ...(cloudflareConfigPath
+          ? { configPath: cloudflareConfigPath }
           : { config: localBindingConfig }),
       }),
     ],

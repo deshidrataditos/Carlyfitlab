@@ -23,7 +23,7 @@
     "SITE_URL": "https://carlyfitlab.com",
     "PAYMENTS_ENABLED": "false",
     "CATALOG_CONFIRMED": "false",
-    "MERCADOPAGO_MODE": "test",
+    "MERCADOPAGO_MODE": "live",
     "GOOGLE_AUTH_ENABLED": "false"
   }
 }
