@@ -26,6 +26,6 @@ export async function POST(request:Request){
   const url=new URL(result.init_point);
   if(url.protocol!=='https:'||!['www.mercadopago.com.mx','sandbox.mercadopago.com.mx'].includes(url.hostname))throw new Error('Unexpected checkout URL');
   await env.DB.prepare('UPDATE orders SET preference_id=? WHERE id=?').bind(result.id,id).run();
-  return Response.json({url:url.href},{headers:{'Cache-Control':'no-store'}});
+  return Response.json({url:url.href,orderId:id},{headers:{'Cache-Control':'no-store'}});
  }catch(error){console.error('checkout_unavailable',error instanceof SyntaxError?'invalid_json':error instanceof Error?error.message:'unknown');return Response.json({error:'No pudimos iniciar el pago. Revisa tu selección o contacta a Carly por WhatsApp.'},{status:400});}
 }

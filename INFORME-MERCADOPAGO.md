@@ -2,15 +2,23 @@
 
 ## Resultado verificado
 
-Checkout Pro de pruebas aprobó dos pagos de **149 MXN**. El vendedor y el comprador coincidieron con las cuentas de prueba previstas. La tienda los concilió después de enviar desde el simulador de Mercado Pago notificaciones firmadas con los identificadores reales de esos pagos: ambas respuestas fueron `200`, D1 guardó `approved` y la página del pedido mostró **Pago confirmado**. Esto verifica el receptor con pagos existentes; aún no demuestra la entrega automática de una compra nueva.
+Después de la corrección del carrito, el usuario completó nuevas compras de prueba el 3 de octubre y confirmó su resultado. Se observó en Mercado Pago una Psy Cookie de **59 MXN**, operación `181274204659`, aprobada a las 17:58 del panel. Una carga nueva de `/pedido?order=eb88939c-ebdf-4772-9691-0104ff3ec607` mostró **Pago confirmado**, dato que la página consulta en D1. El carrito mostró **0 artículos**, también en otra pestaña abierta. Durante esta compra no se utilizó el simulador ni se modificó manualmente D1: la confirmación persistida acredita el recorrido automático del receptor. No se capturó el código HTTP de esa entrega en el historial de Mercado Pago.
+
+Como antecedente, Checkout Pro de pruebas aprobó dos pagos de **149 MXN**. El vendedor y el comprador coincidieron con las cuentas de prueba previstas. La tienda los concilió después de enviar desde el simulador de Mercado Pago notificaciones firmadas con los identificadores reales de esos pagos: ambas respuestas fueron `200`, D1 guardó `approved` y la página del pedido mostró **Pago confirmado**. Esa evidencia inicial solo verificaba el receptor con pagos existentes.
+
+El 3 de octubre se diagnosticó y corrigió el rechazo de las notificaciones automáticas del vendedor de prueba. Su historial registraba `401` para `payment.created` de los pagos `181981714212` y `180975532205`. El Worker de pruebas tenía la firma de la aplicación real. Se reemplazó por la firma de la aplicación del vendedor de prueba `1228080888276164` en el secreto existente `MERCADOPAGO_WEBHOOK_SECRET`; la firma real permanece en el Worker público. También se corrigió la URL del modo Productivo de la aplicación de prueba para que apunte a `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook`, igual que su modo Prueba.
+
+El simulador de esa aplicación de prueba reenvió después el pago `180975532205` y mostró **`200 OK`**. Se verificó la aceptación del aviso con la firma correcta, pero no se volvió a verificar el estado de ese tercer pedido en D1. La compra nueva y la confirmación automática descritas arriba son una comprobación posterior e independiente de este reenvío.
 
 El Access Token de producción y el identificador de la cuenta de Carla ya están guardados, con autorización, como secretos del Worker `carlyfit-lab`. Cloudflare registra el cambio del token en la versión `52454320-22b2-4675-956d-7dfa9557fcca` y el del identificador en `e8152fb7-609b-44e9-934f-56f84e72824f`. No se incorporaron credenciales ni capturas al repositorio.
 
 El 3 de octubre se envió desde el simulador una notificación `payment` con el identificador ficticio `123456` a `https://carlyfitlab.com/api/payments/webhook`. El registro del Worker mostró el POST y `payment_notification_unavailable 404`. Según el flujo de la ruta, la consulta del pago solo ocurre después de validar HMAC y comprobar mediante `/users/me` el identificador esperado del vendedor, país `MLM` y ausencia de la etiqueta `test_user` en modo `live`. Esta evidencia verifica por el flujo ejecutado la firma, el token y la identidad real configurados. El `404` es la respuesta de la consulta de un pago ficticio, no un pago aprobado ni una notificación procesada con `200`. No se modificó ningún pedido ni se realizó una compra real.
 
-**Los cobros comerciales permanecen cerrados.** La configuración pública tiene `MERCADOPAGO_MODE=live`, `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false`. Falta verificar una notificación automática de compra nueva.
+**Los cobros comerciales permanecen cerrados.** La configuración pública tiene `MERCADOPAGO_MODE=live`, `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false`. La compra aprobada de prueba y su carrito ya se verificaron; no se ha realizado un cargo real.
 
 ## Correcciones y controles
+
+- El carrito registra los artículos asociados a cada intento antes de crear el enlace de pago y lo vincula al identificador de pedido devuelto por el servidor. Solo la aprobación consultada en D1 monta la conciliación del carrito. Retira las cantidades pagadas una sola vez, conserva artículos añadidos después y sincroniza las pestañas abiertas. Un pedido antiguo sin vínculo local no vacía una selección nueva. Los carritos anteriores migran conservando sus artículos, sin inventar una asociación con pagos históricos.
 
 - La actualización atómica guarda `date_last_updated` de Mercado Pago. Avisos antiguos o duplicados no reemplazan estados recientes; los reembolsos y contracargos posteriores siguen permitidos. Los pedidos migrados con fecha desconocida conservan los estados finales ante avisos previos.
 - En los dos pagos de cuentas de prueba consultados, la API devolvió `live_mode=true`. No se asume que ese campo por sí solo distingue el entorno de Checkout Pro con APP_USR.
@@ -25,19 +33,19 @@ El 3 de octubre se envió desde el simulador una notificación `payment` con el 
 
 ## Validación y publicación
 
-Pasaron **26 pruebas** de comercio, checkout y webhook. Incluyen cuentas reales rechazadas en modo prueba, cuentas de prueba rechazadas en modo real, identidad/país/tags inválidos, errores de API sin escrituras, pagos de prueba con `live_mode=true`, pagos reales con `live_mode=false` rechazados, firmas inválidas y avisos duplicados o fuera de orden. Compilaron ambos destinos de Cloudflare. TypeScript volvió a pasar el 3 de octubre, sin emisión ni caché incremental.
+Pasaron **35 pruebas** de comercio, checkout, webhook, carrito y página de retorno. Incluyen cuentas reales rechazadas en modo prueba, cuentas de prueba rechazadas en modo real, identidad/país/tags inválidos, errores de API sin escrituras, firmas inválidas, avisos fuera de orden, conservación de nuevas selecciones y rechazo de un estado aprobado inventado en los parámetros de regreso. Compilaron ambos destinos de Cloudflare y pasó TypeScript sin emisión ni caché incremental.
 
-La migración `0001_payment_update_timestamp.sql` está aplicada tanto a `carlyfit-lab-testing-orders` como a `carlyfit-lab-orders`. La versión de pruebas verificada es `a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`. La versión pública actual es `be0e8bd1-ce74-46f6-b4c7-cd18feb55733`, publicada el 3 de octubre a las 12:58 UTC; respondió `200` y muestra Psy Cookie, Core Cookie y el paquete inicial del plan, con cobros cerrados.
+La migración `0001_payment_update_timestamp.sql` está aplicada en ambas bases. Las versiones con la corrección del carrito, publicadas el 3 de octubre, son `878f9110-6af1-49c6-bcb0-03df3a3cfb2e` en pruebas y `9eb9f53d-e506-456e-8fc1-4751e7882a22` en el sitio público. Ambas respondieron `200` y sirven el catálogo y el código actualizado. Se conservaron los secretos, la separación de bases y los cobros públicos cerrados.
 
 ## Pendiente para abrir cobros
 
-1. Verificar la configuración y firma usadas por las notificaciones automáticas del vendedor de prueba y comprobar una compra nueva sin depender del simulador. La firma de la aplicación principal está validada con su simulador; no se presupone que ello demuestre la firma de la entrega automática del vendedor de prueba. Completar también los casos pendiente y rechazado en Checkout Pro.
+1. La compra aprobada y su confirmación automática ya se verificaron. Los casos pendiente y rechazado están cubiertos por pruebas automatizadas; su recorrido completo en la interfaz de Checkout Pro sigue pendiente.
 2. Concretar con Carly el contenido y entrega del paquete inicial de postres. Los precios sugeridos se conservan por indicación del usuario.
 3. Tras completar esas comprobaciones, habilitar `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en el sitio público, que ya está en modo `live`. Verificar la conciliación del primer pago real autorizado. Conservar el Worker separado en modo `test` y con sus credenciales de prueba.
 
 El catálogo publicado incluye Psy Cookie de chocolate con adaptógenos y semillas de cáñamo a **59 MXN por pieza** y Core Cookie de vainilla con centro firme de chocolate a **55 MXN por pieza**. La mermelada es de **300 g a 129 MXN sugeridos** y golden milk de **250 g a 189 MXN sugeridos**. Los planes conservan **1,490 / 2,490 / 2,990 MXN** como precios sugeridos. El último incluye un solo paquete inicial para probar los productos y elegir cuáles integrar a la alimentación; los postres adicionales se compran por separado. Los envíos requieren cotización previa por WhatsApp.
 
-No se emitió una puntuación de calidad oficial ni se realizó homologación MCP. Las herramientas MCP de Mercado Pago no estaban disponibles; se utilizaron código, pruebas, API oficial y panel web. La revisión acredita los controles descritos, no una compra comercial completa ni la entrega automática pendiente.
+No se emitió una puntuación de calidad oficial ni se realizó homologación MCP. Las herramientas MCP de Mercado Pago no estaban disponibles; se utilizaron código, pruebas, API oficial y panel web. La revisión acredita los controles y la compra de prueba descritos, no una compra comercial real.
 
 ## Fuentes
 

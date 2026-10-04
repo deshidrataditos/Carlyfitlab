@@ -2,7 +2,7 @@
 
 ## Sitio publicado
 
-La tienda está publicada en **https://carlyfitlab.com**. La versión pública `be0e8bd1-ce74-46f6-b4c7-cd18feb55733`, publicada el 3 de octubre a las 12:58 UTC, respondió `200` y muestra los productos actualizados y el paquete inicial de postres. Los cobros y el acceso público con Google siguen desactivados.
+La tienda está publicada en **https://carlyfitlab.com**. La versión pública `9eb9f53d-e506-456e-8fc1-4751e7882a22`, publicada el 3 de octubre, respondió `200` y muestra los productos actualizados y el paquete inicial de postres. Los cobros y el acceso público con Google siguen desactivados.
 
 - Página adaptable a celular y computadora, con fotografía de Carla Judith Fernández Arzate y presentación de su experiencia como chef y sus dos certificaciones WABBA México, según la información proporcionada.
 - Atención en línea y presencial en La Barca, Jalisco; planes de 90 días para distintos objetivos y disciplinas deportivas.
@@ -39,6 +39,8 @@ El plan con postres incluye **un paquete inicial** para probar los productos y d
 
 Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pruebas usa `SITE_TESTING=true`, muestra **ENTORNO DE PRUEBA — No se realizan cobros reales** y declara `noindex`, `nofollow` y `noarchive`. No tiene rutas al dominio comercial. La aprobación del catálogo en pruebas solo permite ensayos.
 
+La versión de pruebas actual es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`, publicada el 3 de octubre. Se comprobó su respuesta `200`, el catálogo actualizado y el aviso de pruebas; el despliegue conservó la firma corregida del vendedor de prueba.
+
 `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros; sus respuestas `308` se verificaron el 1 de octubre. El código está en [GitHub](https://github.com/deshidrataditos/Carlyfitlab). Subir commits no publica automáticamente: no hay despliegue continuo configurado.
 
 Los secretos permanecen en cada Worker, fuera del repositorio y de la compilación. Los indicadores explícitos del archivo correspondiente prevalecen sobre valores distintos guardados en el panel durante el siguiente despliegue, aunque se use `keep_vars`.
@@ -56,32 +58,39 @@ El usuario activó las credenciales de producción y autorizó guardar el Access
 
 El 3 de octubre el simulador de Mercado Pago envió una notificación `payment` con `data.id=123456` al receptor público. El registro del Worker mostró el POST y `payment_notification_unavailable 404`. La ruta solo consulta el pago después de validar HMAC y de comprobar con `/users/me` el identificador de vendedor esperado, país `MLM` y ausencia de la etiqueta `test_user` en modo `live`. Por ese flujo ejecutado, la comprobación acredita la firma, el token y la identidad real configurados. El `404` corresponde al pago ficticio; no se obtuvo una respuesta de pago aprobado, no se modificó ningún pedido y no se realizó una compra real.
 
-El modo público ya es `live`, pero `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false` mantienen cerrados los cobros. **La entrega automática de una notificación de compra nueva sigue pendiente.**
+El modo público es `live`, pero `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false` mantienen cerrados los cobros. La compra de prueba aprobada, su confirmación automática y el carrito actualizado se verificaron el 3 de octubre; aún no se ha realizado un cargo real.
 
 ### Compras de prueba
 
 El 2 de octubre el usuario completó dos compras de **149 MXN** con la cuenta de comprador de prueba. La API confirmó ambas como `approved/accredited`, con comprador y vendedor esperados. Después se enviaron desde el simulador notificaciones firmadas con los identificadores reales de esos pagos. El receptor respondió `200`, D1 guardó `approved` y la página del pedido mostró **Pago confirmado**. No se modificó manualmente el estado de los pedidos.
 
-Esto acredita el receptor con pagos existentes, pero no la entrega automática de una compra nueva. Los cuatro intentos anteriores, guardados como pedidos locales pendientes sin `payment_id`, tampoco equivalen a pagos pendientes de Mercado Pago.
+Esa evidencia inicial acreditó el receptor con pagos existentes. El 3 de octubre, después de corregir firma y carrito, el usuario completó nuevas compras de Psy Cookie de 59 MXN. Mercado Pago mostró la operación `181274204659` aprobada a las 17:58 del panel. La página del pedido nuevo `eb88939c-ebdf-4772-9691-0104ff3ec607` mostró Pago confirmado tras consultar D1; el carrito quedó en cero en ambas pestañas de la tienda. No se usó el simulador ni se modificó D1 durante esa compra: quedó verificado el recorrido automático. El código HTTP de ese aviso no se capturó en el historial de Mercado Pago.
+
+El carrito vincula cada intento con el identificador de pedido del servidor. Solo una aprobación consultada en D1 retira las cantidades pagadas; conserva artículos añadidos después y no repite la eliminación al abrir un pedido antiguo. Los carritos anteriores conservan sus artículos sin asociarlos automáticamente a pagos históricos. Los cuatro intentos previos guardados sin `payment_id` no equivalen a pagos pendientes en Mercado Pago.
 
 En los dos pagos aprobados la API devolvió `live_mode=true` aunque el vendedor tenía la etiqueta `test_user`. Por ello, el servidor consulta `/users/me` y comprueba identificador, país y tipo de cuenta antes de crear preferencias o conciliar pagos. En producción exige además `live_mode=true`. La actualización atómica compara `date_last_updated` para impedir que avisos antiguos o duplicados sobrescriban estados posteriores; permite reembolsos y contracargos más recientes.
 
-Pasaron **26 pruebas automatizadas** de comercio, checkout y webhooks, además de las compilaciones de ambos destinos en la validación de la corrección de pagos. TypeScript volvió a pasar el 3 de octubre. La versión de pruebas verificada es `a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`. Estos resultados no sustituyen una compra nueva con notificación automática.
+Pasaron **35 pruebas automatizadas** de comercio, checkout, webhooks, carrito y retorno, además de las compilaciones de ambos destinos en la validación de la corrección de pagos. TypeScript volvió a pasar el 3 de octubre. La corrección inicial se verificó en `a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`; la versión de pruebas actual es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`. La compra nueva con confirmación automática y carrito vacío se verificó después, como se describe arriba.
 
 ### Notificaciones
 
-| Campo en Mercado Pago | URL guardada |
+| Aplicación / campo en Mercado Pago | URL guardada |
 | --- | --- |
-| Prueba | `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook` |
-| Producción | `https://carlyfitlab.com/api/payments/webhook` |
+| Aplicación real `7979217160634504`, modo Prueba | `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook` |
+| Aplicación real `7979217160634504`, modo Productivo | `https://carlyfitlab.com/api/payments/webhook` |
+| Aplicación del vendedor de prueba `1228080888276164`, modos Prueba y Productivo | `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook` |
 
-El receptor procesa el tema `payment`, denominado **Pagos (legacy)** en la configuración y **Pagos** en el simulador. Ambas URL están guardadas. La firma de la aplicación principal está almacenada en los dos Workers y se comprobó con su simulador. Queda pendiente comprobar la configuración y firma de las entregas automáticas del vendedor de prueba; la prueba del simulador de la aplicación principal no demuestra que ambos envíos usen la misma firma.
+El receptor procesa el tema `payment`, denominado **Pagos (legacy)** en la configuración y **Pagos** en el simulador. El 3 de octubre se identificó la causa del fallo automático en el historial del vendedor de prueba: las notificaciones `payment.created` de los pagos `181981714212` y `180975532205` habían recibido `401`. El Worker de pruebas tenía guardada la firma de la aplicación real.
+
+Se guardó la firma de la aplicación del vendedor de prueba `1228080888276164` en el secreto existente `MERCADOPAGO_WEBHOOK_SECRET` de `carlyfit-lab-testing`. La firma real permanece en `carlyfit-lab`. También se corrigió el modo Productivo de la aplicación de prueba: apuntaba al dominio comercial y ahora apunta al receptor de pruebas, igual que su modo Prueba. Los pagos consultados de estas cuentas de prueba aparecen en el filtro Productivo del panel.
+
+Tras guardar la configuración, el simulador de la aplicación del vendedor de prueba reenvió el pago `180975532205` y mostró **«200 OK»**. Esto confirmó la firma correcta. No se verificó de nuevo el estado de ese tercer pedido en D1; la compra automática de 59 MXN descrita arriba es una comprobación posterior independiente. Los avisos de prueba deben proceder de la aplicación del vendedor de prueba, cuya firma es distinta de la aplicación real.
 
 El receptor verifica HMAC-SHA256 antes de consultar el pago y contrasta identificador, vendedor, referencia del pedido, importe, MXN y modo. Los importes proceden del catálogo del servidor. El retorno del navegador no acredita un cobro. El receptor puede conciliar pagos existentes aunque se desactive la creación de compras nuevas. Los errores de consulta responden `503` para permitir reintentos; las firmas inválidas se rechazan con `401`.
 
 ### Pasos para habilitar cobros
 
-1. Completar una compra nueva en pruebas y confirmar su notificación automática, el estado en D1 y la página del pedido sin usar el simulador. Completar también los casos pendiente y rechazado de Checkout Pro.
+1. La compra aprobada automática y su carrito ya están verificados. Quedan los recorridos completos pendiente/rechazado en la interfaz de Checkout Pro; esos estados están cubiertos por las pruebas automatizadas del servidor y carrito.
 2. Concretar con Carly el contenido y entrega del paquete inicial. Los cuatro productos y sus presentaciones ya están definidos; los precios sugeridos se conservan como indicó el usuario.
 3. Cuando esas verificaciones estén completas, habilitar `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en `wrangler.cloudflare.jsonc`, conservar `MERCADOPAGO_MODE=live` y publicar. Comprobar el primer pago real autorizado mediante su conciliación, no solo por el retorno al sitio.
 
@@ -106,7 +115,7 @@ Administración en Supabase: **Authentication → Users** muestra registros y **
 Comprobaciones locales:
 
 ```sh
-node --test tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs
+node --test tests/cart-state.test.mjs tests/order-return.test.mjs tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs
 node node_modules/typescript/bin/tsc --noEmit --incremental false
 ```
 

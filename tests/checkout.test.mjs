@@ -37,7 +37,7 @@ for(const live of [false,true])test(`checkout uses init_point for ${live?'live':
  const fixture=checkoutHarness({live});
  const response=await fixture.run();
  assert.equal(response.status,200);
- assert.deepEqual(await response.json(),{url:checkoutUrl});
+ assert.deepEqual(await response.json(),{url:checkoutUrl,orderId:fixture.writes[0].args[0]});
  assert.equal(fixture.calls[0][1],'/checkout/preferences');
  assert.equal(fixture.calls[0][0].live,live);
  assert.equal(fixture.writes.length,2);

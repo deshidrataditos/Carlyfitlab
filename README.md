@@ -6,11 +6,14 @@ La atención es en línea y presencial en La Barca, Jalisco. Los productos puede
 
 ## Estado de la integración — 3 de octubre de 2026
 
+**Actualización final del carrito:** el usuario completó la compra de prueba de Psy Cookie de 59 MXN y confirmó el resultado. Mercado Pago muestra la operación `181274204659` aprobada; la página del pedido nuevo `eb88939c-ebdf-4772-9691-0104ff3ec607` confirmó el pago mediante su consulta a D1 y el carrito quedó en cero, también en otra pestaña. Durante esta compra no se utilizó el simulador ni se modificó D1: se verificó el recorrido automático. La corrección retira las cantidades pagadas una sola vez y conserva nuevas selecciones. Pasaron 35 pruebas y TypeScript. Detalles en el informe de Mercado Pago.
+
 - El sitio y el carrito están implementados. Los pedidos por WhatsApp permiten solicitar recolección o cotización de envío.
 - Supabase almacena cuentas, perfiles, testimonios y promociones. El acceso con Google se verificó en la vista local. Supabase y Google ya tienen guardadas las direcciones del dominio propio; faltan completar la configuración de marca y las pruebas de acceso público.
 - Checkout Pro de Mercado Pago y su receptor de notificaciones están implementados. El sitio público está configurado en modo `live`, pero los cobros permanecen desactivados: `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false`.
-- El entorno separado `https://carlyfit-lab-testing.carlyfitlab.workers.dev` tiene su propio Worker y base D1. El vendedor de prueba está verificado; el token, su identificador y la firma de Webhooks están guardados como secretos. Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pasaron 26 pruebas automatizadas de pagos, TypeScript y las compilaciones de ambos destinos.
-- El 2 de octubre de 2026 se confirmaron dos pagos de prueba de 149 MXN aprobados por Mercado Pago. El simulador envió notificaciones firmadas con los identificadores reales de esos pagos: el receptor respondió `200`, D1 guardó `approved` y la página del pedido mostró «Pago confirmado». **La entrega automática de una notificación de compra nueva sigue pendiente**; el simulador no acredita ese paso.
+- El entorno separado `https://carlyfit-lab-testing.carlyfitlab.workers.dev` tiene su propio Worker y base D1. El vendedor de prueba está verificado; el token, su identificador y la firma de Webhooks están guardados como secretos. Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pasaron 35 pruebas automatizadas de pagos, carrito y retorno, TypeScript y las compilaciones de ambos destinos.
+- El 2 de octubre se confirmaron dos pagos de prueba de 149 MXN mediante avisos firmados del simulador: el receptor respondió `200`, D1 guardó `approved` y la página mostró «Pago confirmado». Es evidencia anterior a la compra automática verificada el 3 de octubre.
+- El 3 de octubre se identificó la causa de las notificaciones automáticas rechazadas con `401`: el Worker de pruebas tenía la firma de la aplicación real. Se guardó la firma de la aplicación del vendedor de prueba y se corrigió su URL de notificaciones. Su simulador reenvió el pago `180975532205` y obtuvo `200 OK`; después se verificó la compra nueva sin simulación descrita arriba.
 - El Access Token de producción y el identificador de la cuenta de Carla ya se guardaron, con autorización, como secretos del Worker `carlyfit-lab`. El registro de versiones de Cloudflare confirma ambos cambios. Una notificación firmada del simulador al receptor público pasó la firma y la comprobación de identidad real antes de consultar un ID de pago ficticio, que devolvió `404`. Esto verifica la conexión configurada, pero no acredita una compra real ni la entrega automática de una notificación.
 - Publicación en Cloudflare con dominio propio: https://carlyfitlab.com. `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros. Los pagos y el acceso público con Google permanecen desactivados.
 
@@ -57,7 +60,7 @@ La dirección habitual es `http://localhost:5173`. Las funciones conectadas requ
 Para comprobar el proyecto y generar la compilación:
 
 ```sh
-node --test tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs
+node --test tests/cart-state.test.mjs tests/order-return.test.mjs tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs
 node node_modules/typescript/bin/tsc --noEmit
 npm run build
 ```
@@ -88,7 +91,9 @@ Los dos destinos usan configuraciones y bases independientes. GitHub Pages no ej
 
 `CATALOG_CONFIRMED=true` en pruebas permite ensayar con el catálogo provisional; no representa aprobación para venderlo. El entorno de prueba muestra el aviso **ENTORNO DE PRUEBA — No se realizan cobros reales** e indica a los buscadores `noindex`, `nofollow` y `noarchive`. No tiene rutas al dominio comercial. La base de pruebas tiene el identificador `baf321c0-1688-461c-9f6f-8d14327048ff`; las migraciones inicial y `0001_payment_update_timestamp.sql` ya están aplicadas. La segunda migración también está aplicada en la base pública.
 
-El 3 de octubre de 2026 se comprobó que la versión pública `be0e8bd1-ce74-46f6-b4c7-cd18feb55733` responde `200` y muestra Psy Cookie, Core Cookie y el paquete inicial del plan. Las redirecciones `308` de `www` y la dirección anterior de Cloudflare se verificaron el 1 de octubre. `SITE_URL` utiliza `https://carlyfitlab.com`. Supabase tiene guardados ese **Site URL** y el retorno exacto `https://carlyfitlab.com/auth/callback`; conserva también el retorno local para desarrollo.
+El 3 de octubre de 2026 se comprobó que la versión pública `9eb9f53d-e506-456e-8fc1-4751e7882a22` responde `200` y muestra Psy Cookie, Core Cookie y el paquete inicial del plan. Las redirecciones `308` de `www` y la dirección anterior de Cloudflare se verificaron el 1 de octubre. `SITE_URL` utiliza `https://carlyfitlab.com`. Supabase tiene guardados ese **Site URL** y el retorno exacto `https://carlyfitlab.com/auth/callback`; conserva también el retorno local para desarrollo.
+
+La versión actual de pruebas es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`, publicada el 3 de octubre. Respondió `200` y muestra el catálogo actualizado y el aviso de que no se realizan cobros reales. Conserva la firma corregida de la aplicación del vendedor de prueba.
 
 Para preparar y publicar el entorno de pruebas desde una sesión autorizada de Cloudflare:
 
@@ -114,33 +119,36 @@ Cuando se activen Google o los pagos, actualizar también los indicadores explí
 Pendientes de activación:
 
 1. Completar la configuración de marca y audiencia de Google, y probar registro, cierre y nuevo acceso en el dominio propio. El origen `https://carlyfitlab.com` ya está guardado y verificado en Google.
-2. Verificar la entrega automática del Webhook de una compra nueva y completar los casos de prueba pendientes antes de habilitar cobros. La firma y la identidad real configuradas ya se comprobaron mediante el flujo ejecutado por la simulación pública.
+2. La compra aprobada y su confirmación automática están verificadas. Quedan los recorridos completos pendiente/rechazado en Checkout Pro, además de concretar el paquete inicial antes de habilitar cobros. La firma y la identidad real configuradas ya se comprobaron mediante el flujo ejecutado por la simulación pública.
 3. Concretar con Carly el contenido y la entrega del paquete inicial. Mantener identificados los precios sugeridos autorizados por el usuario y completar los datos del aviso de privacidad antes de abrir el registro público.
 
 ## Webhooks de Mercado Pago
 
-Cada entorno tiene su propio receptor HTTPS:
+Cada aplicación debe usar el receptor HTTPS y la firma de su entorno:
 
-| Campo en Mercado Pago | URL |
+| Aplicación / campo en Mercado Pago | URL |
 | --- | --- |
-| URL para prueba | `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook` |
-| URL de producción | `https://carlyfitlab.com/api/payments/webhook` |
+| Aplicación real `7979217160634504`, modo Prueba | `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook` |
+| Aplicación real `7979217160634504`, modo Productivo | `https://carlyfitlab.com/api/payments/webhook` |
+| Aplicación del vendedor de prueba `1228080888276164`, modos Prueba y Productivo | `https://carlyfit-lab-testing.carlyfitlab.workers.dev/api/payments/webhook` |
 
-Ambas URL se guardaron en el panel el 1 de octubre de 2026. Al reabrir la configuración en modo Prueba se verificó la URL de pruebas correcta y únicamente **Pagos (legacy)** seleccionado. El receptor procesa el tema **`payment`**. La firma de la aplicación principal está guardada en ambos Workers. El 2 de octubre, el simulador envió avisos firmados de dos pagos reales del entorno de pruebas y ambos se conciliaron. Aún falta comprobar qué firma utiliza la entrega automática del vendedor de prueba y verificar una compra nueva sin intervención del simulador. No uses el repositorio de GitHub ni `localhost` como receptor.
+El receptor procesa el tema **`payment`**, denominado **Pagos (legacy)** en la configuración. El 3 de octubre se revisó el historial de la aplicación del vendedor de prueba: los avisos automáticos de los pagos `181981714212` y `180975532205` habían fallado con `401`. El Worker de pruebas conservaba la firma de la aplicación real. Se reemplazó por la firma de `1228080888276164`, manteniendo la firma real únicamente en el Worker público, y se corrigió la URL del modo Productivo de la aplicación de prueba para que también apunte al Worker de pruebas. Estos pagos de cuentas de prueba aparecen en ese filtro Productivo del panel; no deben enviarse al dominio comercial.
+
+Después de la corrección, el simulador de la aplicación del vendedor de prueba reenvió el pago `180975532205` al receptor de pruebas y recibió **`200 OK`**. Ese resultado confirma la aceptación del aviso firmado; no acredita por sí solo el estado de ese tercer pedido en D1 ni una entrega automática nueva. Las dos conciliaciones de 149 MXN verificadas el 2 de octubre se conservan como evidencia anterior. La firma de la aplicación real ya no debe usarse para simular avisos contra el Worker de pruebas. No uses el repositorio de GitHub ni `localhost` como receptor.
 
 En Mercado Pago Developers:
 
 1. Abre **Tus integraciones**, selecciona la aplicación de Carlyfit Lab y entra en **Webhooks → Configurar notificaciones**.
-2. Revisa las dos URL de la tabla y el evento **Pagos**, cuyo tema es `payment`, para esta integración de Checkout Pro con Preferencias. El panel también puede denominarlo **Pagos (legacy)**.
+2. Revisa la aplicación y las URL de la tabla, y el evento **Pagos**, cuyo tema es `payment`, para esta integración de Checkout Pro con Preferencias. El panel también puede denominarlo **Pagos (legacy)**. Para ensayar las compras nuevas, usa la aplicación del vendedor de prueba.
 3. Guarda la configuración y copia la firma secreta directamente a `MERCADOPAGO_WEBHOOK_SECRET` en el Worker correspondiente, junto al Access Token y el identificador de vendedor del mismo entorno. No enviarla por chat ni guardarla en GitHub.
 
 Los nombres y pasos del panel se basan en la [documentación oficial de Webhooks](https://www.mercadopago.com.mx/developers/en/docs/checkout-pro-preferences/additional-content/notifications/webhooks). La integración también envía esta ruta al crear cada preferencia.
 
 El receptor funciona independientemente de `PAYMENTS_ENABLED` y `CATALOG_CONFIRMED`, para poder conciliar pagos existentes aunque se suspendan nuevas compras. Devuelve `503` mientras falte configuración o D1, y `401` para firmas inválidas. Los errores al consultar Mercado Pago conservan `503` para permitir reintentos; los registros incluyen únicamente la etiqueta del error y el estado HTTP, nunca el token ni el cuerpo de la respuesta. Un identificador inventado del simulador no equivale a un pago de prueba existente.
 
-Las pruebas de checkout se realizan **solo en `carlyfit-lab-testing`**, con comprador y vendedor de prueba distintos. Ya se verificaron dos aprobaciones y su conciliación mediante avisos del simulador. La validación automatizada cubre firmas inválidas, duplicados y avisos fuera de orden; faltan la entrega automática de una compra nueva y los casos pendiente y rechazado en Checkout Pro. Un pedido local en `pending` sin `payment_id` no demuestra que exista un pago pendiente en Mercado Pago.
+Las pruebas de checkout se realizan **solo en `carlyfit-lab-testing`**, con comprador y vendedor de prueba distintos. Se verificaron dos conciliaciones mediante simulador y, después, una compra nueva con confirmación automática y carrito vacío. La validación automatizada cubre firmas inválidas, duplicados, avisos fuera de orden y conservación del carrito ante estados sin aprobación. Los recorridos completos pendiente/rechazado en Checkout Pro siguen pendientes. Un pedido local en `pending` sin `payment_id` no demuestra un pago pendiente en Mercado Pago.
 
-Para abrir ventas reales: completar las pruebas de entrega automática y los casos pendientes; concretar el contenido y entrega del paquete inicial; y entonces habilitar `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en `wrangler.cloudflare.jsonc`. El modo público ya es `live` y la simulación pública verificó la firma y la identidad configuradas. Comprobar la conciliación del primer pago real autorizado. No activar checkout de prueba en el dominio comercial. Conservar el Worker de pruebas en modo `test`.
+Para abrir ventas reales: concretar el contenido y entrega del paquete inicial y cerrar los casos de prueba pendientes; después habilitar `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en `wrangler.cloudflare.jsonc`. La compra aprobada automática ya se verificó. El modo público es `live` y su firma e identidad están comprobadas. Verificar la conciliación del primer pago real autorizado. Conservar el Worker de pruebas en modo `test`.
 
 El servidor valida la firma, consulta el pago en Mercado Pago y contrasta receptor, importe, moneda y modo antes de actualizar el pedido. Volver a la página de confirmación no acredita el cobro. Los productos físicos de esta primera integración se cobran para recolección; los envíos requieren cotización por WhatsApp.
 
@@ -158,4 +166,4 @@ El servidor valida la firma, consulta el pago en Mercado Pago y contrasta recept
 | `drizzle/` | Migraciones de D1 |
 | `tests/` | Comprobaciones de comercio, checkout y miembros |
 
-La corrección de pagos se verificó en testing (`a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`). La versión pública actual es `be0e8bd1-ce74-46f6-b4c7-cd18feb55733`, con cobros cerrados. El servidor verifica la cuenta del vendedor con `/users/me` antes del checkout y del webhook; no usa `live_mode=false` como único criterio para pruebas con APP_USR. Detalles y límites de la validación en [INFORME-MERCADOPAGO.md](INFORME-MERCADOPAGO.md).
+La corrección inicial de pagos se verificó en testing (`a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`); la versión de pruebas actual es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`. La versión pública actual es `9eb9f53d-e506-456e-8fc1-4751e7882a22`, con cobros cerrados. El servidor verifica la cuenta del vendedor con `/users/me` antes del checkout y del webhook; no usa `live_mode=false` como único criterio para pruebas con APP_USR. Detalles y límites de la validación en [INFORME-MERCADOPAGO.md](INFORME-MERCADOPAGO.md).
