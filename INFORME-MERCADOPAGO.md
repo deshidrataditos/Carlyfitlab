@@ -14,7 +14,7 @@ El Access Token de producción y el identificador de la cuenta de Carla ya está
 
 El 3 de octubre se envió desde el simulador una notificación `payment` con el identificador ficticio `123456` a `https://carlyfitlab.com/api/payments/webhook`. El registro del Worker mostró el POST y `payment_notification_unavailable 404`. Según el flujo de la ruta, la consulta del pago solo ocurre después de validar HMAC y comprobar mediante `/users/me` el identificador esperado del vendedor, país `MLM` y ausencia de la etiqueta `test_user` en modo `live`. Esta evidencia verifica por el flujo ejecutado la firma, el token y la identidad real configurados. El `404` es la respuesta de la consulta de un pago ficticio, no un pago aprobado ni una notificación procesada con `200`. No se modificó ningún pedido ni se realizó una compra real.
 
-**Los cobros comerciales permanecen cerrados.** La configuración pública tiene `MERCADOPAGO_MODE=live`, `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false`. La compra aprobada de prueba y su carrito ya se verificaron; no se ha realizado un cargo real.
+**La activación de cobros comerciales está autorizada.** La configuración de esta activación tiene `MERCADOPAGO_MODE=live`, `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`; la publicación está confirmada en Cloudflare. La compra aprobada de prueba y su carrito ya se verificaron; no se ha realizado un cargo real.
 
 ## Correcciones y controles
 
@@ -33,19 +33,28 @@ El 3 de octubre se envió desde el simulador una notificación `payment` con el 
 
 ## Validación y publicación
 
+La activación pública quedó publicada en `83eeda74-88cb-4dae-8fa3-1844f70c3266`: Cloudflare confirmó modo `live`, ambos indicadores `true`, secretos conservados y base de producción. El sitio respondió `200`; la página, el carrito y el resumen para WhatsApp muestran el paquete de cinco piezas y la preparación al inicio del plan. La versión de pruebas `ae8f11b8-a372-4060-8a1c-22512f0067fd` conserva modo `test` y su base independiente. El primer cobro real no se ejecutó. Una comprobación POST al checkout público fue bloqueada por la revisión automática antes de ejecutarse; se verificó la publicación mediante lecturas y la configuración desplegada.
+
 Pasaron **35 pruebas** de comercio, checkout, webhook, carrito y página de retorno. Incluyen cuentas reales rechazadas en modo prueba, cuentas de prueba rechazadas en modo real, identidad/país/tags inválidos, errores de API sin escrituras, firmas inválidas, avisos fuera de orden, conservación de nuevas selecciones y rechazo de un estado aprobado inventado en los parámetros de regreso. Compilaron ambos destinos de Cloudflare y pasó TypeScript sin emisión ni caché incremental.
 
-La migración `0001_payment_update_timestamp.sql` está aplicada en ambas bases. Las versiones con la corrección del carrito, publicadas el 3 de octubre, son `878f9110-6af1-49c6-bcb0-03df3a3cfb2e` en pruebas y `9eb9f53d-e506-456e-8fc1-4751e7882a22` en el sitio público. Ambas respondieron `200` y sirven el catálogo y el código actualizado. Se conservaron los secretos, la separación de bases y los cobros públicos cerrados.
+La migración `0001_payment_update_timestamp.sql` está aplicada en ambas bases. Las versiones anteriores a la activación, con la corrección del carrito y publicadas el 3 de octubre, fueron `878f9110-6af1-49c6-bcb0-03df3a3cfb2e` en pruebas y `9eb9f53d-e506-456e-8fc1-4751e7882a22` en el sitio público. Ambas respondieron `200` y sirvieron el catálogo y el código actualizado. Se conservaron los secretos, la separación de bases y, en ese momento, los cobros públicos cerrados.
 
-## Pendiente para abrir cobros
+## Activación autorizada y seguimiento
 
-1. La compra aprobada y su confirmación automática ya se verificaron. Los casos pendiente y rechazado están cubiertos por pruebas automatizadas; su recorrido completo en la interfaz de Checkout Pro sigue pendiente.
-2. Concretar con Carly el contenido y entrega del paquete inicial de postres. Los precios sugeridos se conservan por indicación del usuario.
-3. Tras completar esas comprobaciones, habilitar `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en el sitio público, que ya está en modo `live`. Verificar la conciliación del primer pago real autorizado. Conservar el Worker separado en modo `test` y con sus credenciales de prueba.
+1. Activación autorizada publicada y verificada con `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true`, conservando el sitio público en modo `live`. La compra aprobada y su confirmación automática ya se verificaron; el usuario confirmó el paquete y los precios temporales de cobro.
+2. Verificar la conciliación del primer pago real cuando se realice. Conservar el Worker separado en modo `test` y con sus credenciales de prueba.
+3. Como comprobación adicional, realizar los recorridos pendiente/rechazado en la interfaz de Checkout Pro. Ya están cubiertos por pruebas automatizadas y no bloquean esta activación. El acceso público con Google permanece apagado; es independiente de los pagos y no se requiere registro para comprar.
 
-El catálogo publicado incluye Psy Cookie de chocolate con adaptógenos y semillas de cáñamo a **59 MXN por pieza** y Core Cookie de vainilla con centro firme de chocolate a **55 MXN por pieza**. La mermelada es de **300 g a 129 MXN sugeridos** y golden milk de **250 g a 189 MXN sugeridos**. Los planes conservan **1,490 / 2,490 / 2,990 MXN** como precios sugeridos. El último incluye un solo paquete inicial para probar los productos y elegir cuáles integrar a la alimentación; los postres adicionales se compran por separado. Los envíos requieren cotización previa por WhatsApp.
+El catálogo incluye Psy Cookie de chocolate con adaptógenos y semillas de cáñamo a **59 MXN por pieza** y Core Cookie de vainilla con centro firme de chocolate a **55 MXN por pieza**. La mermelada es de **300 g a 129 MXN sugeridos** y golden milk de **250 g a 189 MXN sugeridos**. Los planes conservan **1,490 / 2,490 / 2,990 MXN** como precios sugeridos, autorizados por el usuario como importes vigentes para cobrar en línea. El último incluye **un paquete inicial de cinco piezas en total, a elegir entre los productos**, para probarlos y elegir cuáles integrar a la alimentación. El tiempo de preparación se acuerda con Carly al comenzar el plan; los postres adicionales se compran por separado. El total del carrito es el importe de productos y planes que se cobrará. Los envíos requieren cotización previa por WhatsApp.
 
 No se emitió una puntuación de calidad oficial ni se realizó homologación MCP. Las herramientas MCP de Mercado Pago no estaban disponibles; se utilizaron código, pruebas, API oficial y panel web. La revisión acredita los controles y la compra de prueba descritos, no una compra comercial real.
+
+## Revisión local para la activación
+
+- **Verificado:** catálogo del servidor, validación de vendedor real, HTTPS, firma HMAC, consulta autenticada de pagos, comparación de importe/moneda/referencia y actualización persistida protegida contra avisos duplicados o antiguos. El carrito solo descuenta cantidades tras una aprobación confirmada.
+- **Alcance acordado:** paquete de cinco piezas a elegir, preparación acordada al inicio del plan y precios temporales autorizados para cobrar. Los envíos conservan la cotización previa al pago.
+- **Bloqueos técnicos encontrados:** ninguno adicional en la revisión local. Los textos de la tienda deben reflejar los cobros activados y el importe que se cobrará; su actualización forma parte de esta publicación.
+- **Por verificar:** publicación de la activación y conciliación del primer pago real cuando ocurra. La revisión no emite certificación, homologación ni puntuación oficial de Mercado Pago.
 
 ## Fuentes
 

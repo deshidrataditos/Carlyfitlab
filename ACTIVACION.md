@@ -2,7 +2,11 @@
 
 ## Sitio publicado
 
-La tienda está publicada en **https://carlyfitlab.com**. La versión pública `9eb9f53d-e506-456e-8fc1-4751e7882a22`, publicada el 3 de octubre, respondió `200` y muestra los productos actualizados y el paquete inicial de postres. Los cobros y el acceso público con Google siguen desactivados.
+**Activación publicada el 3 de octubre:** versión pública `83eeda74-88cb-4dae-8fa3-1844f70c3266`, con `PAYMENTS_ENABLED=true`, `CATALOG_CONFIRMED=true` y `MERCADOPAGO_MODE=live`. Cloudflare confirmó esos valores, el destino y la base de producción. La lectura HTTP del sitio respondió `200`; la interfaz muestra cinco piezas en total a elegir y preparación acordada al comenzar el plan. El sitio de pruebas se actualizó por separado a `ae8f11b8-a372-4060-8a1c-22512f0067fd`, conservando modo `test` y su propia base.
+
+La revisión automática bloqueó antes de ejecutarse una comprobación POST al checkout público por el riesgo de iniciar una compra. Se completaron las comprobaciones de lectura y configuración. No se creó un pedido ni se inició un cobro real durante esta activación; la primera compra real y su conciliación quedan por verificar cuando la complete un comprador.
+
+La tienda está publicada en **https://carlyfitlab.com**. La versión pública anterior a la activación `9eb9f53d-e506-456e-8fc1-4751e7882a22`, publicada el 3 de octubre, respondió `200` y mostró los productos actualizados y el paquete inicial de postres, con cobros cerrados en ese momento. La activación de cobros está autorizada, con ambos indicadores en `true` y modo `live`; la publicación está confirmada en Cloudflare. El acceso público con Google permanece desactivado y no condiciona el checkout.
 
 - Página adaptable a celular y computadora, con fotografía de Carla Judith Fernández Arzate y presentación de su experiencia como chef y sus dos certificaciones WABBA México, según la información proporcionada.
 - Atención en línea y presencial en La Barca, Jalisco; planes de 90 días para distintos objetivos y disciplinas deportivas.
@@ -21,9 +25,9 @@ La tienda está publicada en **https://carlyfitlab.com**. La versión pública `
 | Mermelada sin azúcar | $129 | 300 g; precio sugerido |
 | Golden milk | $189 | 250 g; precio sugerido |
 
-Los importes sugeridos se conservan por indicación del usuario y se identifican en la página. Las imágenes de productos son ilustrativas. Psy Cookie sustituye a la galleta de alulosa.
+Los importes sugeridos se conservan por indicación del usuario y se identifican en la página. Son los importes vigentes autorizados para el cobro en línea: se cobra el total de productos y planes mostrado en el carrito. Los envíos se cotizan antes del pago. Las imágenes de productos son ilustrativas. Psy Cookie sustituye a la galleta de alulosa.
 
-El plan con postres incluye **un paquete inicial** para probar los productos y decidir con Carly cuáles integrar a la alimentación. Su contenido y entrega se acuerdan con Carly; no implica entregas recurrentes. Los postres adicionales se compran por separado. Falta concretar el contenido de ese paquete.
+El usuario confirmó que el plan con postres incluye **un paquete inicial de cinco piezas en total, a elegir entre los productos**, para probarlos y decidir con Carly cuáles integrar a la alimentación. **El tiempo de preparación se acuerda al comenzar el plan.** No implica entregas recurrentes y los postres adicionales se compran por separado.
 
 ## Publicación y datos
 
@@ -34,12 +38,12 @@ El plan con postres incluye **un paquete inicial** para probar los productos y d
 | Configuración | `wrangler.cloudflare.jsonc` | `wrangler.testing.jsonc` |
 | Base D1 | `carlyfit-lab-orders` | `carlyfit-lab-testing-orders` |
 | `MERCADOPAGO_MODE` | `live` | `test` |
-| `PAYMENTS_ENABLED` / `CATALOG_CONFIRMED` | `false` / `false` | `true` / `true` |
+| `PAYMENTS_ENABLED` / `CATALOG_CONFIRMED` | `true` / `true` (activación autorizada) | `true` / `true` |
 | `GOOGLE_AUTH_ENABLED` | `false` | `false` |
 
 Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pruebas usa `SITE_TESTING=true`, muestra **ENTORNO DE PRUEBA — No se realizan cobros reales** y declara `noindex`, `nofollow` y `noarchive`. No tiene rutas al dominio comercial. La aprobación del catálogo en pruebas solo permite ensayos.
 
-La versión de pruebas actual es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`, publicada el 3 de octubre. Se comprobó su respuesta `200`, el catálogo actualizado y el aviso de pruebas; el despliegue conservó la firma corregida del vendedor de prueba.
+La versión de pruebas anterior a esta actualización es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`, publicada el 3 de octubre. Se comprobó su respuesta `200`, el catálogo actualizado y el aviso de pruebas; el despliegue conservó la firma corregida del vendedor de prueba.
 
 `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros; sus respuestas `308` se verificaron el 1 de octubre. El código está en [GitHub](https://github.com/deshidrataditos/Carlyfitlab). Subir commits no publica automáticamente: no hay despliegue continuo configurado.
 
@@ -58,7 +62,7 @@ El usuario activó las credenciales de producción y autorizó guardar el Access
 
 El 3 de octubre el simulador de Mercado Pago envió una notificación `payment` con `data.id=123456` al receptor público. El registro del Worker mostró el POST y `payment_notification_unavailable 404`. La ruta solo consulta el pago después de validar HMAC y de comprobar con `/users/me` el identificador de vendedor esperado, país `MLM` y ausencia de la etiqueta `test_user` en modo `live`. Por ese flujo ejecutado, la comprobación acredita la firma, el token y la identidad real configurados. El `404` corresponde al pago ficticio; no se obtuvo una respuesta de pago aprobado, no se modificó ningún pedido y no se realizó una compra real.
 
-El modo público es `live`, pero `PAYMENTS_ENABLED=false` y `CATALOG_CONFIRMED=false` mantienen cerrados los cobros. La compra de prueba aprobada, su confirmación automática y el carrito actualizado se verificaron el 3 de octubre; aún no se ha realizado un cargo real.
+La configuración de la activación autorizada conserva el modo público `live` y establece `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`. Queda verificar su publicación. La compra de prueba aprobada, su confirmación automática y el carrito actualizado se verificaron el 3 de octubre; aún no se ha realizado un cargo real.
 
 ### Compras de prueba
 
@@ -70,7 +74,7 @@ El carrito vincula cada intento con el identificador de pedido del servidor. Sol
 
 En los dos pagos aprobados la API devolvió `live_mode=true` aunque el vendedor tenía la etiqueta `test_user`. Por ello, el servidor consulta `/users/me` y comprueba identificador, país y tipo de cuenta antes de crear preferencias o conciliar pagos. En producción exige además `live_mode=true`. La actualización atómica compara `date_last_updated` para impedir que avisos antiguos o duplicados sobrescriban estados posteriores; permite reembolsos y contracargos más recientes.
 
-Pasaron **35 pruebas automatizadas** de comercio, checkout, webhooks, carrito y retorno, además de las compilaciones de ambos destinos en la validación de la corrección de pagos. TypeScript volvió a pasar el 3 de octubre. La corrección inicial se verificó en `a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`; la versión de pruebas actual es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`. La compra nueva con confirmación automática y carrito vacío se verificó después, como se describe arriba.
+Pasaron **35 pruebas automatizadas** de comercio, checkout, webhooks, carrito y retorno, además de las compilaciones de ambos destinos en la validación de la corrección de pagos. TypeScript volvió a pasar el 3 de octubre. La corrección inicial se verificó en `a4aa2ebd-e8f0-47f7-b57b-3ff700b58e5c`; la versión de pruebas anterior a esta actualización es `878f9110-6af1-49c6-bcb0-03df3a3cfb2e`. La compra nueva con confirmación automática y carrito vacío se verificó después, como se describe arriba.
 
 ### Notificaciones
 
@@ -88,11 +92,11 @@ Tras guardar la configuración, el simulador de la aplicación del vendedor de p
 
 El receptor verifica HMAC-SHA256 antes de consultar el pago y contrasta identificador, vendedor, referencia del pedido, importe, MXN y modo. Los importes proceden del catálogo del servidor. El retorno del navegador no acredita un cobro. El receptor puede conciliar pagos existentes aunque se desactive la creación de compras nuevas. Los errores de consulta responden `503` para permitir reintentos; las firmas inválidas se rechazan con `401`.
 
-### Pasos para habilitar cobros
+### Activación autorizada y seguimiento
 
-1. La compra aprobada automática y su carrito ya están verificados. Quedan los recorridos completos pendiente/rechazado en la interfaz de Checkout Pro; esos estados están cubiertos por las pruebas automatizadas del servidor y carrito.
-2. Concretar con Carly el contenido y entrega del paquete inicial. Los cuatro productos y sus presentaciones ya están definidos; los precios sugeridos se conservan como indicó el usuario.
-3. Cuando esas verificaciones estén completas, habilitar `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en `wrangler.cloudflare.jsonc`, conservar `MERCADOPAGO_MODE=live` y publicar. Comprobar el primer pago real autorizado mediante su conciliación, no solo por el retorno al sitio.
+1. Publicado y verificado `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=true` en `wrangler.cloudflare.jsonc`, conservando `MERCADOPAGO_MODE=live`. La compra aprobada automática y su carrito ya están verificados; el paquete de cinco piezas y su tiempo de preparación acordado al comenzar el plan ya están definidos.
+2. Comprobar el primer pago real cuando se realice mediante su conciliación, no solo por el retorno al sitio. Los precios sugeridos se conservan como importes de cobro autorizados por el usuario.
+3. Como comprobación adicional, se recomiendan los recorridos completos pendiente/rechazado en Checkout Pro; esos estados están cubiertos por las pruebas automatizadas del servidor y carrito. No son un bloqueo para esta activación.
 
 Los productos físicos se cobran para recolección en esta integración. Los envíos requieren cotización previa por WhatsApp. Las pruebas de compra se realizan únicamente en el Worker separado con comprador y vendedor de prueba distintos.
 
@@ -106,7 +110,7 @@ El acceso real desde la vista local se verificó el 29 de septiembre: creación 
 
 La identidad se verifica en el servidor; las cookies de sesión son HttpOnly. Los perfiles solo permiten modificar nombre y consentimiento. Los testimonios se crean pendientes y el listado público no revela correos. Las promociones requieren sesión verificada y fechas vigentes.
 
-Pendiente: completar la información de marca y audiencia de Google, el aviso de privacidad y la prueba de registro, cierre y nuevo acceso en el dominio propio. `GOOGLE_AUTH_ENABLED=false` sigue en el sitio público. Detalles en [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md).
+Pendiente: completar la información de marca y audiencia de Google, el aviso de privacidad y la prueba de registro, cierre y nuevo acceso en el dominio propio. `GOOGLE_AUTH_ENABLED=false` sigue en el sitio público. Es un trabajo independiente: el checkout no requiere registro y este pendiente no bloquea los cobros. Detalles en [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md).
 
 Administración en Supabase: **Authentication → Users** muestra registros y **Table Editor → profiles** muestra perfiles. Los testimonios se moderan en `testimonials` y las promociones se administran en `promotions`. La página no incluye un panel administrativo.
 

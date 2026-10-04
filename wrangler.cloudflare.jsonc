@@ -21,8 +21,8 @@
   ],
   "vars": {
     "SITE_URL": "https://carlyfitlab.com",
-    "PAYMENTS_ENABLED": "false",
-    "CATALOG_CONFIRMED": "false",
+    "PAYMENTS_ENABLED": "true",
+    "CATALOG_CONFIRMED": "true",
     "MERCADOPAGO_MODE": "live",
     "GOOGLE_AUTH_ENABLED": "false"
   }
