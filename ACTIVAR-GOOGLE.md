@@ -25,6 +25,14 @@ No se modificaron el perfil, las preferencias de comunicaciones ni las reseñas 
 
 Google puede mostrar `owaeescwhbtegmxzqpip.supabase.co` en el selector o consentimiento porque no se realizó la verificación de marca. Esto no impidió el acceso comprobado con los tres permisos básicos. El entorno `carlyfit-lab-testing` conserva `GOOGLE_AUTH_ENABLED=false` y no se modificó durante esta activación.
 
+## Verificación de marca: 7 de octubre de 2026
+
+Se guardó el logotipo publicado de Carlyfit Lab en Google Auth Platform y se ejecutó la comprobación de marca. Google informó un único problema: faltaba acreditar la propiedad de la página principal `https://carlyfitlab.com`. El nombre y el logotipo aún no están aprobados para mostrarse a los usuarios.
+
+Con autorización expresa del usuario, se guardó el registro TXT de verificación de Google en Cloudflare para la raíz de `carlyfitlab.com`. Google Search Console confirmó **«Propiedad verificada automáticamente»**, mediante el proveedor de nombres de dominio, con `macnosfeli@gmail.com`, la cuenta propietaria del proyecto. La confirmación se obtuvo el 7 de octubre alrededor de las 12:30, hora de Ciudad de México. Conservar ese registro DNS para mantener la propiedad verificada.
+
+El panel de Google Auth Platform pide esperar **24 horas después de acreditar la propiedad** antes de volver a verificar la marca. Retomar a partir del **8 de octubre de 2026 a las 12:35, hora de Ciudad de México**: abrir Información de la marca → Ver problemas → Corregí los problemas → Continuar; revisar el resultado y publicar la marca cuando Google lo permita. Después comprobar el nombre mostrado en el selector de cuentas desde la tienda. No se debe quitar el dominio de Supabase ni modificar el callback de acceso para resolver este requisito. No hay seguimiento automático programado.
+
 ## Antecedente: prueba local del 29 de septiembre de 2026
 
 El 29 de septiembre de 2026 se inició sesión desde `http://localhost:5173` con la cuenta del propietario, distinta del correo de asistencia. Google devolvió al sitio en `#comunidad`, el perfil cargó y la sesión se mantuvo al recargar. En Supabase se verificaron el registro con proveedor Google y el perfil creado automáticamente, además de los cambios de nombre y preferencias guardados por el propio usuario.
