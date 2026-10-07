@@ -24,6 +24,6 @@
     "PAYMENTS_ENABLED": "true",
     "CATALOG_CONFIRMED": "true",
     "MERCADOPAGO_MODE": "live",
-    "GOOGLE_AUTH_ENABLED": "false"
+    "GOOGLE_AUTH_ENABLED": "true"
   }
 }

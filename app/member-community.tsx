@@ -257,7 +257,7 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
             {action === 'google' ? 'Abriendo Google…' : mode === 'register' ? 'Registrarme con Google' : 'Iniciar sesión con Google'}
           </button>
           {!account.configured && !accountError && <p className="connection-note">Estamos preparando el acceso a la comunidad. Por ahora, Carly te atiende por WhatsApp.</p>}
-          {account.configured && <p className="small-note member-data-note">Google confirma tu identidad. Guardamos tu correo, tu nombre y las preferencias que elijas para tu cuenta Carlyfit. No recibimos tu contraseña de Google.</p>}
+          <p className="small-note member-data-note">Google confirma tu identidad. Guardamos tu correo, tu nombre y las preferencias que elijas para tu cuenta Carlyfit. No recibimos tu contraseña de Google. <a href="/privacidad" className="member-privacy-link">Lee cómo cuidamos tu información.</a></p>
           <a className="text-link" href={contact} target="_blank" rel="noopener noreferrer">Hablar con Carly <ArrowUpRight size={17}/></a>
           <button className="account-switch" onClick={() => onModeChange(mode === 'register' ? 'login' : 'register')}>{mode === 'register' ? 'Ya tengo cuenta · Iniciar sesión' : 'Soy nuevo · Crear una cuenta'}</button>
         </>}

@@ -4,20 +4,22 @@ Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición 
 
 La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan; los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas y los importes aún sugeridos se identifican como provisionales.
 
-## Estado de la integración — 3 de octubre de 2026
+## Estado de la integración — 4 de octubre de 2026
 
-**Cobros reales habilitados:** Cloudflare publicó `83eeda74-88cb-4dae-8fa3-1844f70c3266` con modo `live` y ambos indicadores de pago en `true`. El sitio respondió `200` y se verificó el paquete de cinco piezas, la preparación al iniciar el plan y los importes vigentes. El entorno separado de pruebas se actualizó a `ae8f11b8-a372-4060-8a1c-22512f0067fd`. La primera compra real aún no se ha ejecutado ni conciliado.
+**Google habilitado en el dominio público:** Google está **En producción** para usuarios externos, con los tres permisos básicos de identidad, correo y perfil, sin permisos sensibles ni restringidos. La marca tiene guardadas la página principal y `https://carlyfitlab.com/privacidad`, enlazada desde el pie y el acceso. Se verificaron el inicio de sesión de una cuenta existente, la persistencia al recargar, el cierre y el nuevo acceso. No se modificaron datos de la cuenta ni se creó un usuario nuevo durante esta prueba pública. Pasaron TypeScript, cuatro pruebas de miembros y la compilación.
+
+**Cobros reales habilitados:** la versión pública actual `fe862e7f-ca94-49b8-8228-0d8181804511` incorpora Google y conserva modo `live` y ambos indicadores de pago en `true`. La activación de cobros del 3 de octubre se publicó en `83eeda74-88cb-4dae-8fa3-1844f70c3266`; entonces se verificaron el paquete de cinco piezas, la preparación al iniciar el plan y los importes vigentes. El entorno separado de pruebas conserva `ae8f11b8-a372-4060-8a1c-22512f0067fd`, con Google desactivado y sin cambios en esta actualización. La primera compra real aún no se ha ejecutado ni conciliado.
 
 **Actualización final del carrito:** el usuario completó la compra de prueba de Psy Cookie de 59 MXN y confirmó el resultado. Mercado Pago muestra la operación `181274204659` aprobada; la página del pedido nuevo `eb88939c-ebdf-4772-9691-0104ff3ec607` confirmó el pago mediante su consulta a D1 y el carrito quedó en cero, también en otra pestaña. Durante esta compra no se utilizó el simulador ni se modificó D1: se verificó el recorrido automático. La corrección retira las cantidades pagadas una sola vez y conserva nuevas selecciones. Pasaron 35 pruebas y TypeScript. Detalles en el informe de Mercado Pago.
 
 - El sitio y el carrito están implementados. Los pedidos por WhatsApp permiten solicitar recolección o cotización de envío.
-- Supabase almacena cuentas, perfiles, testimonios y promociones. El acceso con Google se verificó en la vista local. Supabase y Google ya tienen guardadas las direcciones del dominio propio; faltan completar la configuración de marca y las pruebas de acceso público.
+- Supabase almacena cuentas, perfiles, testimonios y promociones. El registro inicial se comprobó en local el 29 de septiembre; el acceso público de una cuenta existente se verificó el 4 de octubre. Se conservaron las direcciones del dominio propio en Supabase y Google. El selector puede mostrar el dominio de Supabase porque no se realizó la verificación de marca; esto no impidió el acceso con los tres permisos básicos.
 - Checkout Pro de Mercado Pago y su receptor de notificaciones están implementados. La activación autorizada configura `MERCADOPAGO_MODE=live`, `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`. Activación publicada y verificada en Cloudflare; no se ha realizado un cargo real.
 - El entorno separado `https://carlyfit-lab-testing.carlyfitlab.workers.dev` tiene su propio Worker y base D1. El vendedor de prueba está verificado; el token, su identificador y la firma de Webhooks están guardados como secretos. Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pasaron 35 pruebas automatizadas de pagos, carrito y retorno, TypeScript y las compilaciones de ambos destinos.
 - El 2 de octubre se confirmaron dos pagos de prueba de 149 MXN mediante avisos firmados del simulador: el receptor respondió `200`, D1 guardó `approved` y la página mostró «Pago confirmado». Es evidencia anterior a la compra automática verificada el 3 de octubre.
 - El 3 de octubre se identificó la causa de las notificaciones automáticas rechazadas con `401`: el Worker de pruebas tenía la firma de la aplicación real. Se guardó la firma de la aplicación del vendedor de prueba y se corrigió su URL de notificaciones. Su simulador reenvió el pago `180975532205` y obtuvo `200 OK`; después se verificó la compra nueva sin simulación descrita arriba.
 - El Access Token de producción y el identificador de la cuenta de Carla ya se guardaron, con autorización, como secretos del Worker `carlyfit-lab`. El registro de versiones de Cloudflare confirma ambos cambios. Una notificación firmada del simulador al receptor público pasó la firma y la comprobación de identidad real antes de consultar un ID de pago ficticio, que devolvió `404`. Esto verifica la conexión configurada, pero no acredita una compra real ni la entrega automática de una notificación.
-- Publicación en Cloudflare con dominio propio: https://carlyfitlab.com. `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros. El acceso público con Google permanece desactivado y es independiente de los cobros.
+- Publicación en Cloudflare con dominio propio: https://carlyfitlab.com. `www.carlyfitlab.com` y la dirección provisional de Cloudflare redirigen al dominio principal, conservando ruta y parámetros. El acceso público con Google está habilitado y es independiente de los cobros; comprar no exige registrarse.
 
 Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaciones y pendientes, y [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md) para la configuración de Google.
 
@@ -88,7 +90,7 @@ Los dos destinos usan configuraciones y bases independientes. GitHub Pages no ej
 
 | Destino | Configuración | Worker / base D1 | Indicadores de la activación autorizada |
 | --- | --- | --- | --- |
-| Sitio público: `https://carlyfitlab.com` | `wrangler.cloudflare.jsonc` | `carlyfit-lab` / `carlyfit-lab-orders` | Pagos y catálogo `true`; modo `live`; Google `false` |
+| Sitio público: `https://carlyfitlab.com` | `wrangler.cloudflare.jsonc` | `carlyfit-lab` / `carlyfit-lab-orders` | Pagos y catálogo `true`; modo `live`; Google `true` |
 | Pruebas: `https://carlyfit-lab-testing.carlyfitlab.workers.dev` | `wrangler.testing.jsonc` | `carlyfit-lab-testing` / `carlyfit-lab-testing-orders` | Pagos y catálogo `true`; modo `test`; `SITE_TESTING=true`; Google `false` |
 
 `CATALOG_CONFIRMED=true` en pruebas permite ensayar con el catálogo provisional; no representa aprobación para venderlo. El entorno de prueba muestra el aviso **ENTORNO DE PRUEBA — No se realizan cobros reales** e indica a los buscadores `noindex`, `nofollow` y `noarchive`. No tiene rutas al dominio comercial. La base de pruebas tiene el identificador `baf321c0-1688-461c-9f6f-8d14327048ff`; las migraciones inicial y `0001_payment_update_timestamp.sql` ya están aplicadas. La segunda migración también está aplicada en la base pública.
@@ -116,13 +118,13 @@ npm run deploy:cloudflare
 
 Cada comando de despliegue compila con su modo correspondiente y publica `dist/server/wrangler.json`. Ese archivo se reemplaza con cada compilación: no reutilizar una compilación de pruebas para publicar en el sitio comercial ni viceversa. Las compilaciones de Cloudflare no copian las claves del `.env` local. Los secretos se configuran en el Worker correspondiente. La conexión automática entre GitHub y Cloudflare no está configurada: subir un commit no publica por sí solo una versión nueva.
 
-Cuando se activen Google o los pagos, actualizar también los indicadores explícitos de `wrangler.cloudflare.jsonc`: `keep_vars` no conserva un valor del panel que contradiga esos indicadores al desplegar.
+Al modificar la activación de Google o los pagos, actualizar también los indicadores explícitos de `wrangler.cloudflare.jsonc`: `keep_vars` no conserva un valor del panel que contradiga esos indicadores al desplegar.
 
 Seguimiento:
 
-1. Verificar y registrar el despliegue de la activación autorizada. La compra de prueba aprobada, su confirmación automática y el carrito están verificados; también la firma y la identidad real configuradas. El paquete inicial ya está definido por el usuario.
+1. El despliegue de la activación autorizada está registrado. La compra de prueba aprobada, su confirmación automática y el carrito están verificados; también la firma y la identidad real configuradas. El paquete inicial ya está definido por el usuario.
 2. Verificar la conciliación del primer pago real cuando se realice. Como comprobación adicional, se recomiendan los recorridos pendiente/rechazado en Checkout Pro; ya están cubiertos por pruebas automatizadas y no bloquean la activación.
-3. Por separado, completar marca y audiencia de Google, el aviso de privacidad y las pruebas de registro, cierre y nuevo acceso en el dominio propio. Google permanece desactivado; el checkout no requiere registro.
+3. El acceso con Google, la audiencia en producción y el aviso de privacidad están publicados. Se comprobaron acceso de una cuenta existente, cierre y nuevo inicio en el dominio propio. La verificación visual de la marca en Google se gestiona por separado; el checkout no requiere registro.
 
 ## Webhooks de Mercado Pago
 

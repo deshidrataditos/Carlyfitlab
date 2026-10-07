@@ -1,17 +1,19 @@
-# Carlyfit Lab — estado al 3 de octubre de 2026
+# Carlyfit Lab — estado al 4 de octubre de 2026
 
 ## Sitio publicado
+
+**Google publicado el 4 de octubre:** versión pública `fe862e7f-ca94-49b8-8228-0d8181804511` del Worker `carlyfit-lab`, con `GOOGLE_AUTH_ENABLED=true`. Conserva `PAYMENTS_ENABLED=true`, `CATALOG_CONFIRMED=true` y `MERCADOPAGO_MODE=live`. El acceso con una cuenta existente, la recarga, el cierre y el nuevo inicio se comprobaron desde la interfaz pública. El entorno de pruebas no se modificó.
 
 **Activación publicada el 3 de octubre:** versión pública `83eeda74-88cb-4dae-8fa3-1844f70c3266`, con `PAYMENTS_ENABLED=true`, `CATALOG_CONFIRMED=true` y `MERCADOPAGO_MODE=live`. Cloudflare confirmó esos valores, el destino y la base de producción. La lectura HTTP del sitio respondió `200`; la interfaz muestra cinco piezas en total a elegir y preparación acordada al comenzar el plan. El sitio de pruebas se actualizó por separado a `ae8f11b8-a372-4060-8a1c-22512f0067fd`, conservando modo `test` y su propia base.
 
 La revisión automática bloqueó antes de ejecutarse una comprobación POST al checkout público por el riesgo de iniciar una compra. Se completaron las comprobaciones de lectura y configuración. No se creó un pedido ni se inició un cobro real durante esta activación; la primera compra real y su conciliación quedan por verificar cuando la complete un comprador.
 
-La tienda está publicada en **https://carlyfitlab.com**. La versión pública anterior a la activación `9eb9f53d-e506-456e-8fc1-4751e7882a22`, publicada el 3 de octubre, respondió `200` y mostró los productos actualizados y el paquete inicial de postres, con cobros cerrados en ese momento. La activación de cobros está autorizada, con ambos indicadores en `true` y modo `live`; la publicación está confirmada en Cloudflare. El acceso público con Google permanece desactivado y no condiciona el checkout.
+La tienda está publicada en **https://carlyfitlab.com**. La versión pública anterior a la activación `9eb9f53d-e506-456e-8fc1-4751e7882a22`, publicada el 3 de octubre, respondió `200` y mostró los productos actualizados y el paquete inicial de postres, con cobros cerrados en ese momento. La activación de cobros está autorizada, con ambos indicadores en `true` y modo `live`; la publicación está confirmada en Cloudflare. El acceso público con Google está habilitado desde el 4 de octubre y no condiciona el checkout.
 
 - Página adaptable a celular y computadora, con fotografía de Carla Judith Fernández Arzate y presentación de su experiencia como chef y sus dos certificaciones WABBA México, según la información proporcionada.
 - Atención en línea y presencial en La Barca, Jalisco; planes de 90 días para distintos objetivos y disciplinas deportivas.
 - Carrito con cantidades, eliminación de artículos, subtotal y borrador guardado en el navegador. Pedidos mediante WhatsApp +52 1 443 358 0280, con recolección o cotización de envío.
-- Comunidad conectada a Supabase, testimonios moderados y promociones para miembros. Sin reseñas ficticias. El acceso con Google se probó en la vista local, pero aún no está habilitado en el dominio público.
+- Comunidad conectada a Supabase, testimonios moderados y promociones para miembros. Sin reseñas ficticias. El acceso con Google está habilitado y comprobado en el dominio público.
 
 ## Catálogo publicado
 
@@ -39,7 +41,7 @@ El usuario confirmó que el plan con postres incluye **un paquete inicial de cin
 | Base D1 | `carlyfit-lab-orders` | `carlyfit-lab-testing-orders` |
 | `MERCADOPAGO_MODE` | `live` | `test` |
 | `PAYMENTS_ENABLED` / `CATALOG_CONFIRMED` | `true` / `true` (activación autorizada) | `true` / `true` |
-| `GOOGLE_AUTH_ENABLED` | `false` | `false` |
+| `GOOGLE_AUTH_ENABLED` | `true` | `false` |
 
 Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pruebas usa `SITE_TESTING=true`, muestra **ENTORNO DE PRUEBA — No se realizan cobros reales** y declara `noindex`, `nofollow` y `noarchive`. No tiene rutas al dominio comercial. La aprobación del catálogo en pruebas solo permite ensayos.
 
@@ -62,7 +64,7 @@ El usuario activó las credenciales de producción y autorizó guardar el Access
 
 El 3 de octubre el simulador de Mercado Pago envió una notificación `payment` con `data.id=123456` al receptor público. El registro del Worker mostró el POST y `payment_notification_unavailable 404`. La ruta solo consulta el pago después de validar HMAC y de comprobar con `/users/me` el identificador de vendedor esperado, país `MLM` y ausencia de la etiqueta `test_user` en modo `live`. Por ese flujo ejecutado, la comprobación acredita la firma, el token y la identidad real configurados. El `404` corresponde al pago ficticio; no se obtuvo una respuesta de pago aprobado, no se modificó ningún pedido y no se realizó una compra real.
 
-La configuración de la activación autorizada conserva el modo público `live` y establece `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`. Queda verificar su publicación. La compra de prueba aprobada, su confirmación automática y el carrito actualizado se verificaron el 3 de octubre; aún no se ha realizado un cargo real.
+La configuración de la activación autorizada conserva el modo público `live` y establece `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`. Su publicación se verificó el 3 de octubre y estos valores se conservaron al habilitar Google el 4 de octubre. La compra de prueba aprobada, su confirmación automática y el carrito actualizado se verificaron el 3 de octubre; aún no se ha realizado un cargo real.
 
 ### Compras de prueba
 
@@ -110,7 +112,11 @@ El acceso real desde la vista local se verificó el 29 de septiembre: creación 
 
 La identidad se verifica en el servidor; las cookies de sesión son HttpOnly. Los perfiles solo permiten modificar nombre y consentimiento. Los testimonios se crean pendientes y el listado público no revela correos. Las promociones requieren sesión verificada y fechas vigentes.
 
-Pendiente: completar la información de marca y audiencia de Google, el aviso de privacidad y la prueba de registro, cierre y nuevo acceso en el dominio propio. `GOOGLE_AUTH_ENABLED=false` sigue en el sitio público. Es un trabajo independiente: el checkout no requiere registro y este pendiente no bloquea los cobros. Detalles en [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md).
+El 4 de octubre Google quedó **En producción** para usuarios externos, con `openid`, `userinfo.email` y `userinfo.profile`, sin permisos sensibles ni restringidos. Se guardaron la página principal `https://carlyfitlab.com` y la política `https://carlyfitlab.com/privacidad` en la marca de Google. La página de privacidad está publicada y enlazada desde el pie y el diálogo de acceso.
+
+El Worker público activa `GOOGLE_AUTH_ENABLED=true`. Desde su interfaz se comprobó el acceso de la cuenta existente del propietario sin advertencia ni alta como usuario de prueba; el perfil conservó sus datos, la recarga mantuvo la sesión y se verificaron el cierre y un nuevo inicio. No se modificaron perfil, comunicaciones ni reseñas. El alta de una cuenta nueva no se repitió en público; permanece como antecedente la prueba local del 29 de septiembre. Pasaron TypeScript, cuatro pruebas automatizadas de miembros y la compilación pública.
+
+El selector de Google puede mostrar el dominio de Supabase porque no se realizó la verificación de marca; esto no impidió el acceso con los tres permisos básicos. Las direcciones de Supabase existentes se conservaron y no se repitió la migración. El entorno de pruebas conserva `GOOGLE_AUTH_ENABLED=false`, sin cambios en esta activación. El checkout no requiere registro. Detalles en [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md).
 
 Administración en Supabase: **Authentication → Users** muestra registros y **Table Editor → profiles** muestra perfiles. Los testimonios se moderan en `testimonials` y las promociones se administran en `promotions`. La página no incluye un panel administrativo.
 
