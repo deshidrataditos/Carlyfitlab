@@ -2,13 +2,21 @@
 
 Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición deportiva y productos Carlyfit Lab. Incluye planes de 90 días, catálogo, carrito y pedidos por WhatsApp, además de comunidad con acceso mediante Google, testimonios moderados y promociones para miembros.
 
-La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan; los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas y los importes aún sugeridos se identifican como provisionales.
+La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas y los importes aún sugeridos se identifican como provisionales.
+
+## Catálogo publicado — 8 de octubre de 2026
+
+La versión pública `8544260b-06f4-4236-842f-83f9f77cd827` agrega pastel de zanahoria y cheesecake en presentación individual y completa de 15 cm, tiramisú individual y minitartaletas de piña y dátil. Cada tamaño tiene su propio identificador; el carrito, el pedido por WhatsApp y Mercado Pago conservan la presentación elegida y el servidor determina el precio. Se actualizaron las fotografías de Psy Cookie y Core Cookie; las seis fotos nuevas son ilustrativas, generadas con la herramienta integrada de imágenes, con referencias reales para el pastel y las galletas.
+
+Los tres planes incluyen rutina de movilidad. El paquete inicial conserva cinco piezas a elegir y permite incluir hasta un pastel individual de zanahoria o cheesecake; los completos de 15 cm se venden por separado. Se retiró el corazón de la firma Carly y el banner amarillo organiza sus cuatro frases en dos columnas en móvil, sin movimiento automático.
+
+Validación: TypeScript, compilación para Cloudflare y 22 pruebas de checkout, carrito y pagos aprobadas. Revisión visual en 320, 390 y 1280 px, cambio de presentación desde tarjeta y detalles, y carrito público verificado sin realizar cobros. Se conservaron los artículos previos al retirar únicamente los agregados durante la revisión. Se mantienen el modo de pago `live`, los indicadores de pago y Google habilitados. El entorno de pruebas no se actualizó en esta publicación.
 
 ## Estado de la integración — 4 de octubre de 2026
 
 **Google habilitado en el dominio público:** Google está **En producción** para usuarios externos, con los tres permisos básicos de identidad, correo y perfil, sin permisos sensibles ni restringidos. La marca tiene guardadas la página principal y `https://carlyfitlab.com/privacidad`, enlazada desde el pie y el acceso. Se verificaron el inicio de sesión de una cuenta existente, la persistencia al recargar, el cierre y el nuevo acceso. No se modificaron datos de la cuenta ni se creó un usuario nuevo durante esta prueba pública. Pasaron TypeScript, cuatro pruebas de miembros y la compilación.
 
-**Cobros reales habilitados:** la versión pública actual `fe862e7f-ca94-49b8-8228-0d8181804511` incorpora Google y conserva modo `live` y ambos indicadores de pago en `true`. La activación de cobros del 3 de octubre se publicó en `83eeda74-88cb-4dae-8fa3-1844f70c3266`; entonces se verificaron el paquete de cinco piezas, la preparación al iniciar el plan y los importes vigentes. El entorno separado de pruebas conserva `ae8f11b8-a372-4060-8a1c-22512f0067fd`, con Google desactivado y sin cambios en esta actualización. La primera compra real aún no se ha ejecutado ni conciliado.
+**Cobros reales habilitados:** la versión pública del 4 de octubre `fe862e7f-ca94-49b8-8228-0d8181804511` incorporó Google y conservó modo `live` y ambos indicadores de pago en `true`. La activación de cobros del 3 de octubre se publicó en `83eeda74-88cb-4dae-8fa3-1844f70c3266`; entonces se verificaron el paquete de cinco piezas, la preparación al iniciar el plan y los importes vigentes. El entorno separado de pruebas conserva `ae8f11b8-a372-4060-8a1c-22512f0067fd`, con Google desactivado y sin cambios en esta actualización. La primera compra real aún no se ha ejecutado ni conciliado.
 
 **Actualización final del carrito:** el usuario completó la compra de prueba de Psy Cookie de 59 MXN y confirmó el resultado. Mercado Pago muestra la operación `181274204659` aprobada; la página del pedido nuevo `eb88939c-ebdf-4772-9691-0104ff3ec607` confirmó el pago mediante su consulta a D1 y el carrito quedó en cero, también en otra pestaña. Durante esta compra no se utilizó el simulador ni se modificó D1: se verificó el recorrido automático. La corrección retira las cantidades pagadas una sola vez y conserva nuevas selecciones. Pasaron 35 pruebas y TypeScript. Detalles en el informe de Mercado Pago.
 
@@ -34,8 +42,12 @@ Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaci
 | Core Cookie | $55 | Por pieza; vainilla con centro firme de chocolate |
 | Mermelada sin azúcar | $129 | 300 g; precio sugerido |
 | Golden milk | $189 | 250 g; precio sugerido |
+| Pastel de zanahoria | $95 / $590 | Individual, 1 porción / completo, 15 cm de diámetro; precios sugeridos |
+| Cheesecake Carlyfit | $99 / $590 | Individual, 1 porción / completo, 15 cm de diámetro; precios sugeridos |
+| Tiramisú saludable | $109 | Individual, 1 porción; precio sugerido |
+| Minitartaleta Crumble de Piña y Dátil | $65 | 1 pieza; precio sugerido |
 
-El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los precios sugeridos se mantienen por indicación del usuario como importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas de ambas galletas ya están publicadas.
+El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los tres planes incluyen rutina de movilidad. Los precios sugeridos se mantienen por indicación del usuario como importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
 
 ## Ejecutar en una computadora
 

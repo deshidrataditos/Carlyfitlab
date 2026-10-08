@@ -17,7 +17,7 @@ export async function POST(request:Request){
   if(!['pickup','digital','shipping'].includes(String(body.delivery)))throw new Error('Entrega inválida.');
   if(body.delivery==='shipping')return Response.json({error:'Primero confirma el costo de envío con Carly por WhatsApp. Te compartirá el importe total antes de pagar.'},{status:409});
   if(lines.some(l=>catalog.find(p=>p.id===l.id)!.kind==='product'||l.id==='dulce-90')&&body.delivery!=='pickup')throw new Error('Confirma la entrega de tus productos.');
-  const items=lines.map(l=>{const p=catalog.find(p=>p.id===l.id)!;return {id:p.id,title:p.name,quantity:l.quantity,currency_id:'MXN',unit_price:p.price};});
+  const items=lines.map(l=>{const p=catalog.find(p=>p.id===l.id)!;return {id:p.id,title:p.presentation?`${p.name} — ${p.presentation}`:p.name,quantity:l.quantity,currency_id:'MXN',unit_price:p.price};});
   const amount=items.reduce((n,i)=>n+i.quantity*i.unit_price*100,0);
   if(!await sellerEnvironmentMatches(config))return Response.json({error:'El pago no está disponible en este momento. Contacta a Carly para verificarlo.'},{status:503});
   const id=crypto.randomUUID();

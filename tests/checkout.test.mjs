@@ -11,7 +11,7 @@ const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.t
 }).outputText;
 const checkoutUrl='https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=test-preference';
 
-function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true}={}){
+function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}]}={}){
  const writes=[];const calls=[];const exported={};
  const config=enabled?{origin:'https://shop.example',live}:null;
  const dependencies={
@@ -28,7 +28,7 @@ function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMa
  });
  const request=new Request('https://shop.example/api/checkout',{
   method:'POST',headers:{Origin:'https://shop.example','Content-Type':'application/json'},
-  body:JSON.stringify({items:[{id:'galletas',quantity:1}],delivery:'pickup',customer:'Test buyer'}),
+  body:JSON.stringify({items,delivery:'pickup',customer:'Test buyer'}),
  });
  return {run:()=>exported.POST(request),writes,calls};
 }
@@ -68,4 +68,24 @@ test('unverified or mismatched seller cannot create a preference or order',async
   assert.equal(fixture.calls.length,0);
   assert.equal(fixture.writes.length,0);
  }
+});
+
+test('cake sizes remain distinct in the payment and stored order, with server prices',async()=>{
+ const items=[
+  {id:'pastel-zanahoria',quantity:2,price:1},
+  {id:'pastel-zanahoria-grande',quantity:1,price:1},
+  {id:'cheesecake-carlyfit',quantity:1,price:1},
+  {id:'cheesecake-carlyfit-grande',quantity:1,price:1},
+ ];
+ const fixture=checkoutHarness({items});
+ assert.equal((await fixture.run()).status,200);
+ const sent=fixture.calls[0][2].items;
+ assert.deepEqual(Array.from(sent,item=>item.id),items.map(item=>item.id));
+ assert.deepEqual(Array.from(sent,item=>item.unit_price),[95,590,99,590]);
+ assert.match(sent[0].title,/Pastel de zanahoria.*Individual.*1 porción/);
+ assert.match(sent[1].title,/Pastel de zanahoria.*Grande.*15 cm/);
+ assert.match(sent[2].title,/Cheesecake Carlyfit.*Individual.*1 porción/);
+ assert.match(sent[3].title,/Cheesecake Carlyfit.*Grande.*15 cm/);
+ assert.equal(fixture.writes[0].args[2],146900);
+ assert.deepEqual(JSON.parse(fixture.writes[0].args[1]),JSON.parse(JSON.stringify(sent)));
 });
