@@ -4,6 +4,16 @@ Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición 
 
 La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas y los importes aún sugeridos se identifican como provisionales.
 
+## Moderación de comentarios — publicación del 8 de octubre de 2026
+
+Se implementó el panel **Mi cuenta → Administración → Administrar comentarios**, disponible solo para cuentas con permiso explícito. Permite revisar pendientes, aprobar, rechazar, ocultar publicados y volver a aprobar comentarios no publicados. La lista muestra el nombre público, la experiencia, las estrellas y la fecha, sin correos de clientes. Los testimonios nuevos continúan entrando como `pending`; un cliente no puede aprobar los suyos.
+
+La migración `supabase/migrations/202610080001_testimonial_moderation.sql` **ya se aplicó** en Supabase el 8 de octubre; no volver a ejecutarla. Agrega una lista privada de moderadores y un registro de cambios de estado. Las comprobaciones SQL finalizaron con **PASS** dentro de una transacción revertida por completo, sin modificar datos reales. También pasaron las 10 pruebas automatizadas de miembros y moderación, TypeScript y la compilación para Cloudflare.
+
+El panel se publicó en el Worker público con la versión `3b0db7ad-5e89-43dc-8b62-786f08f2892c`. Con autorización del usuario, **se concedió a Carly el permiso de moderación el 8 de octubre a las 15:41, hora de Ciudad de México**, tras verificar el UUID exacto, el correo confirmado y la identidad de Google. Se completó el inicio con su cuenta y **Mi cuenta** mostró **Administración → Administrar comentarios**. La lista cargó dos pendientes con sus botones **Aprobar** y **Rechazar**; **Publicados** y **No publicados** estaban vacíos. La interfaz se verificó también a 390 px, sin recortes. No se aprobó ni modificó ningún comentario real durante la revisión. Una consulta de visitante al endpoint público devolvió `401` con `private, no-store` y `Vary: Cookie`. Aplicar la migración o publicar el panel no asigna permisos automáticamente. La guía de concesión y revocación por UUID verificado está en [supabase/README.md](supabase/README.md).
+
+La marca de Google **quedó aprobada y publicada el 8 de octubre**. Search Console había verificado el dominio el día anterior; la revisión inicial de la mañana aún mostraba pendiente la acreditación de la página principal, resuelta en la comprobación posterior. El acceso con Google permanece habilitado. Detalles en [ACTIVAR-GOOGLE.md](ACTIVAR-GOOGLE.md).
+
 ## Catálogo publicado — 8 de octubre de 2026
 
 La versión pública `8544260b-06f4-4236-842f-83f9f77cd827` agrega pastel de zanahoria y cheesecake en presentación individual y completa de 15 cm, tiramisú individual y minitartaletas de piña y dátil. Cada tamaño tiene su propio identificador; el carrito, el pedido por WhatsApp y Mercado Pago conservan la presentación elegida y el servidor determina el precio. Se actualizaron las fotografías de Psy Cookie y Core Cookie; las seis fotos nuevas son ilustrativas, generadas con la herramienta integrada de imágenes, con referencias reales para el pastel y las galletas.
@@ -21,7 +31,7 @@ Validación: TypeScript, compilación para Cloudflare y 22 pruebas de checkout, 
 **Actualización final del carrito:** el usuario completó la compra de prueba de Psy Cookie de 59 MXN y confirmó el resultado. Mercado Pago muestra la operación `181274204659` aprobada; la página del pedido nuevo `eb88939c-ebdf-4772-9691-0104ff3ec607` confirmó el pago mediante su consulta a D1 y el carrito quedó en cero, también en otra pestaña. Durante esta compra no se utilizó el simulador ni se modificó D1: se verificó el recorrido automático. La corrección retira las cantidades pagadas una sola vez y conserva nuevas selecciones. Pasaron 35 pruebas y TypeScript. Detalles en el informe de Mercado Pago.
 
 - El sitio y el carrito están implementados. Los pedidos por WhatsApp permiten solicitar recolección o cotización de envío.
-- Supabase almacena cuentas, perfiles, testimonios y promociones. El registro inicial se comprobó en local el 29 de septiembre; el acceso público de una cuenta existente se verificó el 4 de octubre. Se conservaron las direcciones del dominio propio en Supabase y Google. El selector puede mostrar el dominio de Supabase porque no se realizó la verificación de marca; esto no impidió el acceso con los tres permisos básicos.
+- Supabase almacena cuentas, perfiles, testimonios y promociones. El registro inicial se comprobó en local el 29 de septiembre; el acceso público de una cuenta existente se verificó el 4 de octubre. Se conservaron las direcciones del dominio propio en Supabase y Google. La marca se verificó y publicó el 8 de octubre; un nuevo acceso mostró el nombre Carlyfit Lab y su logotipo en el selector de Google.
 - Checkout Pro de Mercado Pago y su receptor de notificaciones están implementados. La activación autorizada configura `MERCADOPAGO_MODE=live`, `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`. Activación publicada y verificada en Cloudflare; no se ha realizado un cargo real.
 - El entorno separado `https://carlyfit-lab-testing.carlyfitlab.workers.dev` tiene su propio Worker y base D1. El vendedor de prueba está verificado; el token, su identificador y la firma de Webhooks están guardados como secretos. Las migraciones `0000` y `0001_payment_update_timestamp.sql` están aplicadas en ambas bases. Pasaron 35 pruebas automatizadas de pagos, carrito y retorno, TypeScript y las compilaciones de ambos destinos.
 - El 2 de octubre se confirmaron dos pagos de prueba de 149 MXN mediante avisos firmados del simulador: el receptor respondió `200`, D1 guardó `approved` y la página mostró «Pago confirmado». Es evidencia anterior a la compra automática verificada el 3 de octubre.
@@ -76,7 +86,7 @@ La dirección habitual es `http://localhost:5173`. Las funciones conectadas requ
 Para comprobar el proyecto y generar la compilación:
 
 ```sh
-node --test tests/cart-state.test.mjs tests/order-return.test.mjs tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs
+node --test tests/cart-state.test.mjs tests/order-return.test.mjs tests/commerce.test.mjs tests/checkout.test.mjs tests/webhook.test.mjs tests/members.test.mjs tests/moderation.test.mjs
 node node_modules/typescript/bin/tsc --noEmit
 npm run build
 ```
@@ -92,7 +102,7 @@ npm run build
 
 El Access Token y la firma de Webhooks se guardan como secretos del servidor en el alojamiento. No deben aparecer en el navegador, el repositorio, capturas o mensajes. La aplicación de miembros utiliza la clave pública de Supabase y las políticas de acceso de la base; no requiere una clave `service_role` en el navegador.
 
-La migración de miembros ya está aplicada al proyecto Supabase de Carlyfit Lab. No se debe ejecutar de nuevo allí. Para otra base, sigue [supabase/README.md](supabase/README.md). Los testimonios se crean pendientes y se moderan desde Supabase; no se publican automáticamente.
+Las migraciones de miembros y de moderación ya están aplicadas al proyecto Supabase de Carlyfit Lab. No se deben ejecutar de nuevo allí. Para otra base, sigue [supabase/README.md](supabase/README.md). Los testimonios se crean pendientes y no se publican automáticamente. El panel publicado usa permisos en la base y operaciones auditadas; Carly ya tiene el permiso y se verificaron el acceso, los filtros y la lectura de pendientes desde su cuenta.
 
 `.gitignore` excluye credenciales locales, dependencias, compilaciones, estado de herramientas y capturas de trabajo. La carpeta `build/` contiene código fuente necesario del complemento de Vite y sí forma parte del proyecto.
 
@@ -136,7 +146,7 @@ Seguimiento:
 
 1. El despliegue de la activación autorizada está registrado. La compra de prueba aprobada, su confirmación automática y el carrito están verificados; también la firma y la identidad real configuradas. El paquete inicial ya está definido por el usuario.
 2. Verificar la conciliación del primer pago real cuando se realice. Como comprobación adicional, se recomiendan los recorridos pendiente/rechazado en Checkout Pro; ya están cubiertos por pruebas automatizadas y no bloquean la activación.
-3. El acceso con Google, la audiencia en producción y el aviso de privacidad están publicados. Se comprobaron acceso de una cuenta existente, cierre y nuevo inicio en el dominio propio. La verificación visual de la marca en Google se gestiona por separado; el checkout no requiere registro.
+3. El acceso con Google, la audiencia en producción, la marca y el aviso de privacidad están publicados. Se comprobaron acceso de una cuenta existente, cierre y nuevo inicio en el dominio propio. El selector ya muestra Carlyfit Lab y su logotipo; el checkout no requiere registro.
 
 ## Webhooks de Mercado Pago
 
@@ -177,6 +187,7 @@ El servidor valida la firma, consulta el pago en Mercado Pago y contrasta recept
 | `public/images/` | Logo, fotografía y recursos de la tienda |
 | `app/api/checkout/route.ts` | Creación de preferencias de pago |
 | `app/api/payments/webhook/route.ts` | Recepción y conciliación de notificaciones |
+| `app/testimonial-moderation.tsx` y `app/api/admin/testimonials/route.ts` | Panel privado y operaciones de moderación de comentarios |
 | `proxy.ts` | Redirección de `www` y la dirección provisional al dominio principal |
 | `supabase/` | Migración, políticas y administración de miembros |
 | `drizzle/` | Migraciones de D1 |

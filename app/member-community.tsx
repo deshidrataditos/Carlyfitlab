@@ -1,11 +1,12 @@
 'use client';
 
 import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
-import {ArrowUpRight, Check, Heart, LoaderCircle, LockKeyhole, LogOut, MessageCircle, Sparkles, Star, X} from 'lucide-react';
+import {ArrowUpRight, Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, LogOut, MessageCircle, ShieldCheck, Sparkles, Star, X} from 'lucide-react';
 import {Dialog, DialogContent, DialogDescription, DialogTitle} from '@/components/ui/dialog';
 import {Checkbox} from '@/components/ui/checkbox';
 import {RadioGroup, RadioGroupItem} from '@/components/ui/radio-group';
 import {whatsapp} from '@/lib/catalog';
+import TestimonialModeration from './testimonial-moderation';
 
 type Mode = 'register' | 'login';
 type Testimonial = {id:string; body:string; rating:number; created_at:string};
@@ -18,9 +19,10 @@ type Account = {
   profile:null|{display_name:string; marketing_opt_in:boolean};
   testimonials:MemberTestimonial[];
   promotions:Promotion[];
+  canModerateTestimonials:boolean;
 };
 
-const emptyAccount:Account = {configured:false, user:null, profile:null, testimonials:[], promotions:[]};
+const emptyAccount:Account = {configured:false, user:null, profile:null, testimonials:[], promotions:[], canModerateTestimonials:false};
 const contact = whatsapp('Hola, Carly. Me gustaría saber más sobre la comunidad Carlyfit Lab.');
 
 async function request<T>(path:string, options:RequestInit = {}):Promise<T> {
@@ -69,11 +71,13 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
   const [publicTestimonials, setPublicTestimonials] = useState<PublicTestimonial[]>([]);
   const [publicLoading, setPublicLoading] = useState(true);
   const [publicError, setPublicError] = useState('');
+  const [moderationOpen, setModerationOpen] = useState(false);
   const accountRequest = useRef(0);
+  const publicRequest = useRef(0);
 
-  const loadAccount = useCallback(async () => {
+  const loadAccount = useCallback(async (silent = false) => {
     const sequence = ++accountRequest.current;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setAccountError('');
     try {
       const data = await request<Account>('/api/account');
@@ -91,20 +95,38 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
   }, []);
 
   const loadTestimonials = useCallback(async () => {
+    const sequence = ++publicRequest.current;
     setPublicLoading(true);
     setPublicError('');
     try {
       const data = await request<{testimonials:PublicTestimonial[]}>('/api/testimonials');
+      if (sequence !== publicRequest.current) return;
       setPublicTestimonials(data.testimonials);
     } catch {
+      if (sequence !== publicRequest.current) return;
       setPublicError('Por ahora no pudimos cargar las experiencias. Puedes intentarlo de nuevo.');
     } finally {
-      setPublicLoading(false);
+      if (sequence === publicRequest.current) setPublicLoading(false);
     }
   }, []);
 
-  useEffect(() => {void loadTestimonials();}, [loadTestimonials]);
+  const refreshAfterModeration = useCallback(() => {
+    void loadTestimonials();
+    void loadAccount(true);
+  }, [loadAccount, loadTestimonials]);
+
+  const loseModerationAccess = useCallback(() => {
+    setModerationOpen(false);
+    setAccount(current => ({...current, canModerateTestimonials:false}));
+    setActionError('Tu sesión ya no tiene acceso para administrar comentarios. Vuelve a abrir tu cuenta para comprobar el permiso.');
+  }, []);
+
+  useEffect(() => {
+    void loadTestimonials();
+    return () => {publicRequest.current += 1;};
+  }, [loadTestimonials]);
   useEffect(() => {void loadAccount();}, [loadAccount]);
+  useEffect(() => {setModerationOpen(false);}, [open, account.user?.id, account.canModerateTestimonials]);
   useEffect(() => {
     if (open) {
       void loadAccount();
@@ -181,12 +203,13 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
 
   async function logout() {
     setAction('logout');
+    setModerationOpen(false);
     setActionError('');
     setSuccess('');
     try {
       await post('/api/auth/logout', {});
       ++accountRequest.current;
-      setAccount(current => ({...current, user:null, profile:null, testimonials:[], promotions:[]}));
+      setAccount(current => ({...current, user:null, profile:null, testimonials:[], promotions:[], canModerateTestimonials:false}));
       setDisplayName('');
       setMarketingOptIn(false);
       setBody('');
@@ -264,6 +287,11 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
 
         {!loading && account.user && <div className="member-content">
           <p className="member-email"><LockKeyhole size={15}/><span>{account.user.email}</span></p>
+          {account.canModerateTestimonials && <section className="member-panel member-moderation" aria-labelledby="member-moderation-title">
+            <h3 id="member-moderation-title">Administración</h3>
+            <button type="button" className="button outline moderation-toggle" aria-expanded={moderationOpen} aria-controls="testimonial-moderation" disabled={action === 'logout'} onClick={() => setModerationOpen(current => !current)}><ShieldCheck size={19}/><span>Administrar comentarios</span><ChevronDown size={18} aria-hidden="true"/></button>
+            {open && moderationOpen && action !== 'logout' && <TestimonialModeration key={account.user.id} onModerated={refreshAfterModeration} onAccessLost={loseModerationAccess}/>}
+          </section>}
           <section className="member-panel" aria-labelledby="member-profile-title">
             <h3 id="member-profile-title">A tu manera</h3>
             <form className="member-form" onSubmit={saveProfile}>

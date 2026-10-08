@@ -56,3 +56,22 @@ export function testimonialInput(data: Record<string, unknown>) {
   }
   return {body, rating: data.rating};
 }
+
+export function moderationQuery(url: string) {
+  const params = new URL(url).searchParams;
+  const status = params.get('status') ?? 'pending';
+  const offset = params.get('offset') ?? '0';
+  if (!['pending', 'approved', 'rejected'].includes(status) || !/^\d{1,6}$/.test(offset) || Number(offset) > 100000) {
+    throw new MemberInputError('El filtro de comentarios no es válido.');
+  }
+  return {status, offset: Number(offset)};
+}
+
+export function moderationInput(data: Record<string, unknown>) {
+  if (typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id)
+    || (data.status !== 'approved' && data.status !== 'rejected')
+    || typeof data.expectedStatus !== 'string' || !['pending', 'approved', 'rejected'].includes(data.expectedStatus)) {
+    throw new MemberInputError('Revisa el comentario y la acción que quieres realizar.');
+  }
+  return {id: data.id, status: data.status, expectedStatus: data.expectedStatus};
+}

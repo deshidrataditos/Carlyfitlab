@@ -1,6 +1,6 @@
 # Activar el acceso con Google de Carlyfit Lab
 
-Estado al **4 de octubre de 2026**: el acceso con Google está habilitado y comprobado en **https://carlyfitlab.com**. Google muestra la aplicación **En producción** para usuarios externos. El Worker público `carlyfit-lab`, versión `fe862e7f-ca94-49b8-8228-0d8181804511`, tiene `GOOGLE_AUTH_ENABLED=true` y conserva los cobros en modo `live`, con `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`.
+Estado al **8 de octubre de 2026**: el acceso con Google está habilitado en **https://carlyfitlab.com** y la marca **Carlyfit Lab está verificada y publicada**. Google muestra la aplicación **En producción** para usuarios externos. El Worker público `carlyfit-lab`, versión `3b0db7ad-5e89-43dc-8b62-786f08f2892c`, tiene `GOOGLE_AUTH_ENABLED=true` y conserva los cobros en modo `live`, con `PAYMENTS_ENABLED=true` y `CATALOG_CONFIRMED=true`.
 
 Las contraseñas, códigos de verificación y secretos se introducen directamente en Google/Supabase, no en el chat ni en el repositorio.
 
@@ -23,15 +23,25 @@ Desde la interfaz pública se inició sesión con la cuenta existente del propie
 
 No se modificaron el perfil, las preferencias de comunicaciones ni las reseñas durante esta comprobación. No se creó una cuenta nueva: el alta inicial de usuario y perfil se comprobó anteriormente en local, como se detalla abajo. Pasaron TypeScript, las cuatro pruebas automatizadas de miembros y la compilación pública.
 
-Google puede mostrar `owaeescwhbtegmxzqpip.supabase.co` en el selector o consentimiento porque no se realizó la verificación de marca. Esto no impidió el acceso comprobado con los tres permisos básicos. El entorno `carlyfit-lab-testing` conserva `GOOGLE_AUTH_ENABLED=false` y no se modificó durante esta activación.
+En la prueba del 4 de octubre Google mostraba `owaeescwhbtegmxzqpip.supabase.co` en el selector o consentimiento porque la marca aún no estaba verificada. Esto no impidió el acceso comprobado con los tres permisos básicos. La marca se publicó el 8 de octubre, como se detalla abajo. El entorno `carlyfit-lab-testing` conserva `GOOGLE_AUTH_ENABLED=false` y no se modificó durante esta activación.
 
 ## Verificación de marca: 7 de octubre de 2026
 
-Se guardó el logotipo publicado de Carlyfit Lab en Google Auth Platform y se ejecutó la comprobación de marca. Google informó un único problema: faltaba acreditar la propiedad de la página principal `https://carlyfitlab.com`. El nombre y el logotipo aún no están aprobados para mostrarse a los usuarios.
+Se guardó el logotipo publicado de Carlyfit Lab en Google Auth Platform y se ejecutó la comprobación de marca. Google informó un único problema: faltaba acreditar la propiedad de la página principal `https://carlyfitlab.com`. En ese momento el nombre y el logotipo aún no estaban aprobados para mostrarse a los usuarios.
 
 Con autorización expresa del usuario, se guardó el registro TXT de verificación de Google en Cloudflare para la raíz de `carlyfitlab.com`. Google Search Console confirmó **«Propiedad verificada automáticamente»**, mediante el proveedor de nombres de dominio, con `macnosfeli@gmail.com`, la cuenta propietaria del proyecto. La confirmación se obtuvo el 7 de octubre alrededor de las 12:30, hora de Ciudad de México. Conservar ese registro DNS para mantener la propiedad verificada.
 
-El panel de Google Auth Platform pide esperar **24 horas después de acreditar la propiedad** antes de volver a verificar la marca. Retomar a partir del **8 de octubre de 2026 a las 12:35, hora de Ciudad de México**: abrir Información de la marca → Ver problemas → Corregí los problemas → Continuar; revisar el resultado y publicar la marca cuando Google lo permita. Después comprobar el nombre mostrado en el selector de cuentas desde la tienda. No se debe quitar el dominio de Supabase ni modificar el callback de acceso para resolver este requisito. No hay seguimiento automático programado.
+El panel de Google Auth Platform pidió esperar **24 horas después de acreditar la propiedad** antes de volver a verificar la marca. El plazo terminó el **8 de octubre de 2026 a las 12:35, hora de Ciudad de México**. La revisión se retomó esa tarde y se completó, como se detalla a continuación. No se quitó el dominio de Supabase ni se modificó el callback de acceso. No hay seguimiento automático programado.
+
+### Revisión del 8 de octubre de 2026
+
+El panel se revisó alrededor de las **10:16, hora de Ciudad de México**. Google todavía no había aprobado la marca y mostraba el mismo requisito de propiedad de la página principal. Esta comprobación ocurrió antes de cumplirse las 24 horas indicadas por Google. La nueva comprobación se realizó esa tarde y obtuvo la aprobación descrita en la sección siguiente. El inicio de sesión que ya estaba en producción era independiente de esta aprobación de marca.
+
+## Marca aprobada y publicada el 8 de octubre de 2026
+
+Después de transcurrir las 24 horas desde la verificación del dominio, se solicitó una nueva comprobación mediante **Corregí los problemas → Continuar**. Google verificó la marca y habilitó su publicación. Se publicó la marca; el panel confirmó **«Se verificó la información de tu marca y se muestra a los usuarios»**. El nombre es **Carlyfit Lab**, con su logotipo y el correo de asistencia del negocio. Se conservaron los dominios, el callback y los permisos básicos existentes.
+
+Se cerró la sesión de la tienda y se inició un nuevo acceso: el selector de Google mostró el logotipo y **«Ir a Carlyfit Lab»**. Se volvió a entrar con la cuenta de Carly. Esta comprobación sustituye el pendiente de mostrar la marca, sin contratar un dominio personalizado de Supabase.
 
 ## Antecedente: prueba local del 29 de septiembre de 2026
 
@@ -50,7 +60,9 @@ Solicitar únicamente datos básicos para el acceso: `openid`, `userinfo.email` 
 
 ## Administración
 
-Los registros se consultan en **Authentication → Users** y los perfiles en **Table Editor → profiles**. Las reseñas se revisan en **Table Editor → testimonials**; solo cambiar a `approved` las que se decida publicar. Las promociones se crean en **promotions** con fechas válidas y `active=true`.
+Los registros se consultan en **Authentication → Users** y los perfiles en **Table Editor → profiles**. Las promociones se crean en **promotions** con fechas válidas y `active=true`.
+
+El 8 de octubre se publicó **Mi cuenta → Administración → Administrar comentarios** y, con confirmación del propietario, se concedió el permiso a **carlyfit.lab@gmail.com**. Se comprobó el acceso real con Google, la carga de los dos comentarios pendientes, los filtros y la presentación móvil; no se publicaron ni rechazaron comentarios reales durante la prueba. Las pruebas de autorización del servidor y de la base pasaron; los datos de prueba se revirtieron. El permiso se asigna por UUID verificado de Supabase Auth mediante una lista privada; no depende de que el correo figure como contacto de Google. No equivale a un rol administrador en Google Cloud ni en Supabase. La concesión, revocación y funcionamiento están documentados en [supabase/README.md](supabase/README.md). Carly puede aprobar, rechazar u ocultar comentarios desde su cuenta; solo los aprobados se muestran públicamente.
 
 El acceso público con Google y los cobros reales están habilitados. El primer pago real y su conciliación siguen pendientes de comprobar cuando lo complete un comprador. El receptor público usa `https://carlyfitlab.com/api/payments/webhook`; el registro de pagos está en [ACTIVACION.md](ACTIVACION.md). La tienda no almacena contraseñas de Google ni datos de tarjetas.
 
