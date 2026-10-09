@@ -46,6 +46,7 @@ export default function PrivacyPage() {
       <section>
         <h2>Experiencias y promociones</h2>
         <p>Si compartes una experiencia, guardamos el texto, la calificación, la fecha y su estado de revisión, asociados a tu cuenta. Tras la aprobación, se publican el nombre que elegiste para la comunidad, el comentario, la calificación y la fecha. Comparte únicamente lo que quieras hacer público; evita incluir información de salud u otros datos sensibles.</p>
+        <p>Para atender usos indebidos, Carly puede suspender y reactivar el acceso de una cuenta al asistente de IA y al envío de comentarios. Guardamos de forma privada el motivo, la fecha y la persona administradora que realizó cada cambio. La suspensión no elimina la cuenta ni impide consultar sus pedidos y materiales pagados. Si necesitas que se revise una suspensión, contacta a Carly por los medios indicados en esta página.</p>
         <p>Las promociones para miembros aparecen en tu espacio de cuenta. Recibir promociones por correo es opcional: la casilla está desactivada inicialmente y puedes cambiar esa preferencia cuando quieras. Registrarte no te suscribe automáticamente a comunicaciones promocionales.</p>
       </section>
 

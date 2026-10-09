@@ -1,6 +1,7 @@
 import {env} from 'cloudflare:workers';
 import {checkMemberOrigin, MemberInputError, memberBody} from '@/lib/member-input';
 import {memberSession, memberJson, memberFailure} from '@/lib/supabase-server';
+import {requireCommunityAccess} from '@/lib/member-restrictions';
 import {ASSISTANT_INSTRUCTIONS, buildAssistantKnowledge} from '@/lib/assistant-knowledge';
 import {readProductAvailability} from '@/lib/product-availability';
 import {ASSISTANT_MODEL, ASSISTANT_MAX_OUTPUT_TOKENS, ASSISTANT_MAX_PROMPT_BYTES, ASSISTANT_TIMEOUT_MS, assistantInput, assistantReply, assistantUsage, reserveAssistantRequest, releaseAssistantRequest, localAssistantReply} from '@/lib/assistant-server';
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
   const session = memberSession(request);
   try {
     const userId = await authenticatedUser(session);
+    await requireCommunityAccess(session!);
     const config = configuration();
     if (!config) return session!.finish(memberJson({enabled: false}));
     const usage = await assistantUsage(config.db, userId);
@@ -38,6 +40,7 @@ export async function POST(request: Request) {
   try {
     checkMemberOrigin(request);
     const userId = await authenticatedUser(session);
+    await requireCommunityAccess(session!);
     const message = assistantInput(await memberBody(request));
     const config = configuration();
     if (!config) throw new MemberInputError('El asistente aún no está disponible. Puedes consultar con Carly por WhatsApp.', 503);

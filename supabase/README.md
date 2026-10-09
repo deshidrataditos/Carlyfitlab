@@ -4,6 +4,19 @@
 
 Mantener `carlyfit_private` fuera de **API → Exposed schemas**. Usar la clave pública y la sesión real del cliente en la aplicación; nunca una clave `service_role`/secret en el navegador. El acceso exige el JWT de Supabase, no un indicador guardado localmente. Las cuentas anónimas de Supabase Auth no tienen acceso de miembro.
 
+## Suspensión de IA y comentarios — 9 de octubre de 2026
+
+`migrations/202610090002_member_restrictions.sql` aplicada con autorización expresa para Carly, después de la migración del directorio. **No volver a aplicarla** al proyecto existente. Crea dos tablas privadas con RLS y sin acceso directo para roles de cliente: el estado actual y la auditoría de cada cambio, con usuario, administrador, motivo, fecha y versión.
+
+- `get_my_community_access()` devuelve únicamente si la cuenta de la sesión puede usar IA y enviar comentarios; no permite consultar otra identidad ni leer notas internas.
+- `list_store_customer_restrictions(uuid[])` proyecta hasta 20 estados solo para administración de tienda. Las cuentas administradoras tienen acceso efectivo y no pueden ser suspendidas desde este panel.
+- `set_store_customer_restriction(uuid,boolean,text,integer)` exige permiso de tienda, motivo de 5–500 caracteres y versión esperada. Bloquea la fila de identidad y registra estado y auditoría en una transacción. No acepta suspenderse a uno mismo ni a otra cuenta administradora; tampoco identidades anónimas o eliminadas. `40001` indica conflicto, `42501` falta de permiso o cuenta protegida, `22023` datos inválidos o estado ya existente, `P0002` cuenta no disponible.
+- `testimonials_active_community_only` es una política **restrictiva solo para INSERT**. No sustituye las políticas existentes ni modifica lectura del perfil, testimonios históricos o archivos pagados. El servidor vuelve a consultar el estado antes de gastar cuota de IA.
+
+Las pruebas `tests/member_restrictions.sql` crean únicamente identidades aleatorias con correos ficticios y referencias de Storage sin subir archivos. Terminan con `ROLLBACK`. Pasaron antes de la instalación definitiva y se verificó que no quedó ninguna cuenta ficticia ni modificación. Para ensayar una instalación desde cero en una base que ya tenga las migraciones anteriores, ejecutar el cuerpo de la migración sin su `COMMIT` seguido del cuerpo de las pruebas sin el segundo `BEGIN`; conservar su `ROLLBACK`. Nunca usar clientes reales como pruebas de suspensión.
+
+El bloqueo está asociado a la cuenta, no a texto editable de correo o metadata. No cambia credenciales, no bloquea Gmail y no impide crear otra cuenta externa. No se utiliza la prohibición global de Supabase Auth porque impediría consultar compras y materiales pagados. Para retirar un testimonio ya publicado, usar la moderación existente.
+
 ## Panel de moderación — 8 de octubre de 2026
 
 `migrations/202610080001_testimonial_moderation.sql` ya se aplicó con éxito en el proyecto existente, después de la migración de miembros. **No volver a ejecutarla allí.** Para una base nueva, aplicar ambas migraciones una vez, en ese orden, como propietario. La migración nueva agrega `testimonials.moderated_at`, la lista privada `carlyfit_private.testimonial_moderators`, una auditoría de transiciones y funciones limitadas de lectura y moderación. No concede acceso automáticamente a ningún usuario.

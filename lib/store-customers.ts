@@ -1,11 +1,13 @@
 import {MemberInputError} from './member-input';
 import type {StoreSession} from './store-server';
+import {listCustomerRestrictions, type CustomerRestriction} from './member-restrictions';
 
 export const CUSTOMER_PAGE_SIZE = 20;
 export const CUSTOMER_MAX_OFFSET = 100000;
 export type StoreCustomer = {
   id:string; displayName:string; email:string|null; registeredAt:string;
   orderCount:number; approvedOrderCount:number; approvedAmountCents:number; lastOrderAt:string|null;
+  restriction:CustomerRestriction;
 };
 type DirectoryRow = {id:string;display_name:string;email:string|null;created_at:string};
 type CustomerStats = {user_id:string;order_count:number;approved_order_count:number;approved_amount_cents:number;last_order_at:string|null};
@@ -50,6 +52,7 @@ export async function listStoreCustomers(db:D1Database, session:StoreSession, ur
   const rows = directoryRows(result.data);
   const page = rows.slice(0,CUSTOMER_PAGE_SIZE);
   if (!page.length) return {customers:[] as StoreCustomer[],hasMore:false};
+  const restrictions = await listCustomerRestrictions(session,page.map(row => row.id));
   // Only exact authenticated user IDs link purchases. Matching an email could
   // incorrectly attribute a guest purchase or another account's private order.
   const stats = await db.prepare(`SELECT user_id,COUNT(*) order_count,
@@ -63,7 +66,8 @@ export async function listStoreCustomers(db:D1Database, session:StoreSession, ur
     const orders = byUser.get(row.id);
     return {id:row.id,displayName:row.display_name,email:row.email,registeredAt:row.created_at,
       orderCount:orders?.order_count ?? 0,approvedOrderCount:orders?.approved_order_count ?? 0,
-      approvedAmountCents:orders?.approved_amount_cents ?? 0,lastOrderAt:orders?.last_order_at ?? null};
+      approvedAmountCents:orders?.approved_amount_cents ?? 0,lastOrderAt:orders?.last_order_at ?? null,
+      restriction:restrictions.get(row.id.toLowerCase())!};
   });
   return {customers,hasMore:rows.length > CUSTOMER_PAGE_SIZE};
 }

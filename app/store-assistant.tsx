@@ -25,7 +25,8 @@ function quota(value:Record<string,unknown>):Quota|null {
 }
 function errorMessage(status:number, value:Record<string,unknown>|null):string {
   if (status === 401) return 'Tu sesión terminó. Inicia sesión de nuevo para usar el asistente.';
-  if (status === 403) return 'Para usar el asistente, inicia sesión con tu cuenta de Google.';
+  if (status === 403) return typeof value?.error === 'string' && value.error.trim() && value.error.length <= 1000
+    ? value.error : 'Para usar el asistente, inicia sesión con tu cuenta de Google.';
   if (status === 429) return typeof value?.error === 'string' ? value.error : 'Alcanzamos el límite de consultas. Puedes volver más tarde o consultar con Carly.';
   if (status === 503) return 'El asistente no está disponible por el momento. Puedes consultar con Carly por WhatsApp.';
   return typeof value?.error === 'string' ? value.error : 'No pudimos completar la consulta. Inténtalo otra vez.';
@@ -95,8 +96,8 @@ function AssistantPanel({userId, onSignIn, onClose, onNavigate}:{userId:string|n
     return () => clearInterval(timer);
   }, [retryAt]);
 
-  const sessionExpired = failure?.status === 401 || failure?.status === 403;
-  const blocked = !availability?.enabled || availability.remaining === 0 || failure?.status === 503 || sessionExpired;
+  const sessionExpired = failure?.status === 401;
+  const blocked = !availability?.enabled || availability.remaining === 0 || failure?.status === 403 || failure?.status === 503 || sessionExpired;
 
   function waitBeforeNextRequest(response:Response) {
     const seconds = retrySeconds(response.headers.get('Retry-After'));
@@ -118,6 +119,7 @@ function AssistantPanel({userId, onSignIn, onClose, onNavigate}:{userId:string|n
       if (limits) setAvailability(current => current?.enabled ? {...current, ...limits} : current);
       if (!response.ok) {
         if (response.status === 429) waitBeforeNextRequest(response);
+        if (response.status === 403) setAvailability(null);
         setFailure({status:response.status, message:errorMessage(response.status, body)}); return;
       }
       if (typeof body?.reply !== 'string' || !body.reply.trim() || body.reply.length > 6000 || !limits) throw new Error('invalid_response');

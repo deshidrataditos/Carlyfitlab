@@ -4,11 +4,23 @@ Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición 
 
 La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas. Los precios mostrados son los vigentes en MXN para cada presentación y plan.
 
+## Suspensión de IA y comentarios — 9 de octubre de 2026
+
+En **Mi cuenta → Administrar tienda y planes → Clientes**, Carly puede **Suspender cuenta** y **Reactivar cuenta**. Cada acción requiere un motivo de 5 a 500 caracteres y confirmación. La tarjeta muestra el estado, el último motivo y la fecha en horario de Ciudad de México. Su propia cuenta y las demás cuentas administradoras están protegidas.
+
+La suspensión se vincula al identificador de la cuenta registrada: cambiar el correo del perfil no la evita. Se consulta en cada petición al asistente y al enviar comentarios, incluso con una sesión ya abierta; una política restrictiva de Supabase también bloquea inserciones directas de testimonios. No bloquea el inicio de sesión, los pedidos, los materiales pagados ni el perfil. Los comentarios anteriores conservan su estado y se pueden moderar por separado. No bloquea Gmail ni otras cuentas que la misma persona pudiera crear.
+
+`supabase/migrations/202610090002_member_restrictions.sql` **aplicada el 9 de octubre de 2026**, con autorización expresa de la ampliación para Carly. No volver a aplicarla. Añade estado y auditoría privados, una consulta propia sin motivos, y operaciones limitadas a la administración existente. No asigna otros administradores ni suspende cuentas al instalarse. Las actualizaciones usan versión esperada y bloqueo de fila; un cambio concurrente exige volver a revisar el estado. Las notas internas nunca se envían a la IA.
+
+Pasaron 285 pruebas automáticas, TypeScript, lint de los archivos modificados y compilación de producción. Las pruebas SQL de permisos, sesiones abiertas, inserción directa, reactivación y conservación de materiales pagados pasaron en una transacción revertida. Se confirmó después que no quedaron cuentas de prueba ni permisos adicionales. La demostración local comprobó suspensión, reactivación, motivo obligatorio, errores, conflicto de versión y formulario a 320 px. Ninguna cuenta real se suspendió durante las comprobaciones.
+
+**Publicado en carlyfitlab.com**, versión `3cc28e14-a49b-4640-be6d-c6f4b4a06bd4`. La sesión de Carly cargó los estados y las acciones, y mostró su propia cuenta protegida. Las solicitudes GET y POST sin sesión devolvieron `401` y `no-store, private`. La consulta final de Supabase confirmó cero restricciones y cero acciones reales. La subida inicial de Cloudflare falló; el reintento terminó correctamente. El entorno de pruebas de pagos conserva su versión anterior.
+
 ## Directorio privado de clientes — 9 de octubre de 2026
 
 **Mi cuenta → Administración → Administrar tienda y planes → Clientes** permite consultar nombres, correos, fechas de registro y resumen de pedidos de las cuentas registradas, también si no han comprado. Incluye búsqueda por nombre o correo y páginas de 20 cuentas. Las fechas se muestran en horario de Ciudad de México.
 
-El directorio usa una consulta limitada de Supabase protegida por el permiso `store_admin` existente. No concede roles ni utiliza claves de servicio en el navegador. Supabase comprueba el permiso en cada consulta y conserva la lectura individual de perfiles para el resto de miembros. Solo se consultan los datos necesarios para esta pantalla; el directorio no permite exportar listas, enviar mensajes ni alterar cuentas.
+El directorio usa una consulta limitada de Supabase protegida por el permiso `store_admin` existente. No concede roles ni utiliza claves de servicio en el navegador. Supabase comprueba el permiso en cada consulta y conserva la lectura individual de perfiles para el resto de miembros. Solo se consultan los datos necesarios para esta pantalla; no permite exportar listas ni enviar mensajes. Las acciones de suspensión se describen arriba.
 
 Los pedidos se asocian por el identificador de la cuenta al comprar, nunca por coincidencia de correo. El total de pedidos incluye todos los estados; los pedidos aprobados y su importe se muestran por separado, antes de comisiones. Los invitados no aparecen como cuentas registradas y sus compras no se asignan automáticamente. La lista no se envía al asistente de IA ni se guarda en el almacenamiento local del navegador. Aparecer en ella no suscribe al cliente a promociones.
 

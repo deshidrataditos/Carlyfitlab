@@ -11,7 +11,7 @@ const other = 'b8939179-3b60-4eba-a864-d40960759974';
 const question = {message: '¿Qué productos cuestan menos de 100 pesos?'};
 const fields = {ingredients: '', allergens: '', storage: '', preparation: '', servings: '', shipping: ''};
 
-function harness({user = {id: owner, email: 'private@example.invalid', user_metadata: {privateNote: 'PRIVATE_PROFILE'}}, authError = null, sessionAvailable = true, enabled = true, missingAI = false, missingDB = false, failSql = null, provider, immediateTimeout = false, knowledgeOverride, sharedDb, availability=null, availabilityError=false} = {}) {
+function harness({user = {id: owner, email: 'private@example.invalid', user_metadata: {privateNote: 'PRIVATE_PROFILE'}}, authError = null, sessionAvailable = true, enabled = true, missingAI = false, missingDB = false, failSql = null, provider, immediateTimeout = false, knowledgeOverride, sharedDb, availability=null, availabilityError=false,communityAccess=true,communityError=null} = {}) {
   const db = sharedDb ?? new DatabaseSync(':memory:');
   if (!sharedDb) {
     for (const name of ['0000_abandoned_darwin.sql', '0001_payment_update_timestamp.sql', '0002_store_portal.sql', '0003_public_product_facts.sql', '0004_assistant_usage.sql']) db.exec(readFileSync(new URL(`../drizzle/${name}`, import.meta.url), 'utf8'));
@@ -20,6 +20,8 @@ function harness({user = {id: owner, email: 'private@example.invalid', user_meta
   const aiCalls = [];
   const timers = [];
   const availabilityCalls = [];
+  const permissionCalls = [];
+  let currentAccess = communityAccess;
   let currentUser = user;
   function sqlStatement(sql, values = []) {
     function run(method) {
@@ -37,7 +39,10 @@ function harness({user = {id: owner, email: 'private@example.invalid', user_meta
     return provider ? provider({model, input, db}) : {response: 'Psi Cookie cuesta $59 MXN por pieza.'};
   }};
   const session = {
-    client: {auth: {getUser: async () => ({data: {user: currentUser}, error: authError})}},
+    client: {auth: {getUser: async () => ({data: {user: currentUser}, error: authError})},rpc:async(name,args)=>{
+      permissionCalls.push({name,args});assert.equal(name,'get_my_community_access');assert.equal(args,undefined);
+      return {data:currentAccess,error:communityError};
+    }},
     finish: response => { response.headers.set('X-Session-Finished', 'true'); return response; },
   };
   const json = (data, status = 200) => Response.json(data, {status, headers: {'Cache-Control': 'private, no-store', Vary: 'Cookie'}});
@@ -74,7 +79,7 @@ function harness({user = {id: owner, email: 'private@example.invalid', user_meta
   function request(body, {origin = 'https://shop.example', contentType = 'application/json', raw = false} = {}) {
     return new Request('https://shop.example/api/assistant', {method: 'POST', headers: {...(origin !== null && {Origin: origin}), 'Content-Type': contentType}, body: raw ? body : JSON.stringify(body)});
   }
-  return {db, d1, sqlCalls, aiCalls, timers, availabilityCalls, helpers, seed, now, setUser: value => {currentUser = value;}, knowledge: load('lib/assistant-knowledge'), get: () => route.GET(new Request('https://shop.example/api/assistant')), post: (body = question, options) => route.POST(request(body, options))};
+  return {db, d1, sqlCalls, aiCalls, timers, availabilityCalls, permissionCalls, helpers, seed, now, setAccess:value=>{currentAccess=value;},setUser: value => {currentUser = value;}, knowledge: load('lib/assistant-knowledge'), get: () => route.GET(new Request('https://shop.example/api/assistant')), post: (body = question, options) => route.POST(request(body, options))};
 }
 
 test('assistant requires a verified non-anonymous session before accessing D1 or AI', async () => {
@@ -88,6 +93,28 @@ test('assistant requires a verified non-anonymous session before accessing D1 or
     assert.equal(h.sqlCalls.length, 0);
     assert.equal(h.aiCalls.length, 0);
     assert.equal(h.availabilityCalls.length, 0);
+    assert.equal(h.permissionCalls.length,0);
+  }
+});
+
+test('suspension blocks both assistant routes before any quota, catalog, or inference work',async()=>{
+  const h=harness({communityAccess:false});
+  for(const response of [await h.get(),await h.post()]) {
+    assert.equal(response.status,403);assert.match((await response.json()).error,/suspendida.*pedidos y materiales siguen disponibles/);
+    assert.equal(response.headers.get('Cache-Control'),'private, no-store');
+  }
+  assert.equal(h.sqlCalls.length,0);assert.equal(h.aiCalls.length,0);assert.equal(h.availabilityCalls.length,0);
+  assert.equal(h.db.prepare('SELECT count(*) AS count FROM assistant_requests').get().count,0);
+  h.setAccess(true);assert.equal((await h.post()).status,200);assert.equal(h.aiCalls.length,1);
+  h.setAccess(false);assert.equal((await h.get()).status,403);assert.equal((await h.post()).status,403);
+  assert.equal(h.aiCalls.length,1);assert.equal(h.db.prepare('SELECT count(*) AS count FROM assistant_requests').get().count,1);
+});
+
+test('community permission failures and malformed results fail closed without leaking details',async()=>{
+  for(const options of [{communityError:{message:'PRIVATE_REASON'}},{communityAccess:null},{communityAccess:[]},{communityAccess:'true'},{communityAccess:{active:true}}]) {
+    const h=harness(options);
+    for(const response of [await h.get(),await h.post()]) {assert.equal(response.status,503);assert.doesNotMatch(await response.text(),/PRIVATE_REASON/);}
+    assert.equal(h.sqlCalls.length,0);assert.equal(h.aiCalls.length,0);
   }
 });
 
