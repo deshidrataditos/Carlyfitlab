@@ -11,7 +11,7 @@ const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.t
 }).outputText;
 const checkoutUrl='https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=test-preference';
 
-function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}]}={}){
+function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}],delivery='pickup'}={}){
  const writes=[];const calls=[];const exported={};
  const config=enabled?{origin:'https://shop.example',live}:null;
  const dependencies={
@@ -28,7 +28,7 @@ function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMa
  });
  const request=new Request('https://shop.example/api/checkout',{
   method:'POST',headers:{Origin:'https://shop.example','Content-Type':'application/json'},
-  body:JSON.stringify({items,delivery:'pickup',customer:'Test buyer'}),
+  body:JSON.stringify({items,delivery,customer:'Test buyer'}),
  });
  return {run:()=>exported.POST(request),writes,calls};
 }
@@ -81,11 +81,25 @@ test('cake sizes remain distinct in the payment and stored order, with server pr
  assert.equal((await fixture.run()).status,200);
  const sent=fixture.calls[0][2].items;
  assert.deepEqual(Array.from(sent,item=>item.id),items.map(item=>item.id));
- assert.deepEqual(Array.from(sent,item=>item.unit_price),[95,590,99,590]);
+ assert.deepEqual(Array.from(sent,item=>item.unit_price),[95,750,99,720]);
  assert.match(sent[0].title,/Pastel de zanahoria.*Individual.*1 porción/);
  assert.match(sent[1].title,/Pastel de zanahoria.*Grande.*15 cm/);
  assert.match(sent[2].title,/Cheesecake Carlyfit.*Individual.*1 porción/);
  assert.match(sent[3].title,/Cheesecake Carlyfit.*Grande.*15 cm/);
- assert.equal(fixture.writes[0].args[2],146900);
+ assert.equal(fixture.writes[0].args[2],175900);
  assert.deepEqual(JSON.parse(fixture.writes[0].args[1]),JSON.parse(JSON.stringify(sent)));
+});
+
+test('the monthly in-person plan creates a one-month payment at the server price',async()=>{
+ const fixture=checkoutHarness({items:[{id:'presencial-mensual',quantity:1,price:1}],delivery:'digital'});
+ assert.equal((await fixture.run()).status,200);
+ assert.equal(fixture.calls.length,1);
+ assert.equal(fixture.calls[0][1],'/checkout/preferences');
+ const item=fixture.calls[0][2].items[0];
+ assert.equal(item.id,'presencial-mensual');
+ assert.equal(item.unit_price,2200);
+ assert.equal(item.quantity,1);
+ assert.match(item.title,/Entrena con Carly.*1 mes.*presencial/);
+ assert.equal(fixture.writes[0].args[2],220000);
+ assert.deepEqual(JSON.parse(fixture.writes[0].args[1]),JSON.parse(JSON.stringify([item])));
 });

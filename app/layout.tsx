@@ -5,7 +5,7 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, them
 
 const siteMetadata: Metadata = {
   title: "Carlyfit Lab | Entrena, nutre y disfruta",
-  description: "Entrenamiento de 90 días, asesoría en nutrición deportiva y postres Carlyfit Lab. Con Carla Judith Fernández Arzate, en línea y en La Barca, Jalisco.",
+  description: "Planes de 90 días para entrenar en casa o gimnasio con video explicativo, entrenamiento presencial mensual, nutrición deportiva y postres Carlyfit Lab en La Barca, Jalisco.",
   other: {
     "codex-preview": "development",
   },

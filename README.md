@@ -1,8 +1,16 @@
 # Carlyfit Lab
 
-Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición deportiva y productos Carlyfit Lab. Incluye planes de 90 días, catálogo, carrito y pedidos por WhatsApp, además de comunidad con acceso mediante Google, testimonios moderados y promociones para miembros.
+Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición deportiva y productos Carlyfit Lab. Incluye planes a distancia de 90 días y un plan presencial mensual, catálogo, carrito y pedidos por WhatsApp, además de comunidad con acceso mediante Google, testimonios moderados y promociones para miembros.
 
 La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas. Los precios mostrados son los vigentes en MXN para cada presentación y plan.
+
+## Planes y precios actualizados — 8 de octubre de 2026
+
+El usuario confirmó conservar los tres planes a distancia de 90 días: ahora explican una sola entrega de rutina y video explicativo, adaptada a los horarios, equipo y necesidades para casa o gimnasio. Se añadió **Entrena con Carly**, presencial en La Barca, por **$2,200 MXN al mes**. El nuevo identificador `presencial-mensual` conserva el período de un mes en carrito, WhatsApp y Mercado Pago; usa el checkout de pago único existente y no genera una suscripción. No se promete un número de sesiones ni se incluyen alimentación o postres en esa opción: horarios e inicio se acuerdan con Carly. La actualización describe el entregable; no añade videos o documentos de clientes al servidor.
+
+Nombre comercial corregido a **Psi Cookie**, conservando su identificador e imagen. Nuevos precios: pastel de zanahoria completo de 15 cm **$750**, cheesecake completo de 15 cm **$720**, tiramisú individual **$140** y minitartaleta **$95**. Individuales de zanahoria y cheesecake conservan **$95 y $99**; el resto de los precios se conserva. El servidor usa el catálogo actualizado para nuevas preferencias de pago; no se modifican pedidos ni preferencias ya creados.
+
+Validación: TypeScript, compilación Cloudflare y **23 pruebas de comercio, checkout y carrito**. Se verificaron el cobro de un mes a precio del servidor y la conservación de tamaños en las órdenes simuladas. En la revisión local, las seis selecciones (presencial, dos pasteles grandes, tiramisú, minitartaleta y Psi Cookie) sumaron **$3,964 MXN**, también en el mensaje preparado de WhatsApp. Se retiraron las selecciones de prueba, sin enviar mensajes ni cobrar. Diseño revisado en escritorio y viewports de 390 y 320 px, sin desbordamiento horizontal. Publicación verificada en carlyfitlab.com: versión `937db606-dccc-406f-818c-f3b02551ae05`. Se comprobaron los nuevos precios en el catálogo público y el bloque presencial de $2,200/mes. El entorno de pruebas permanece sin cambios.
 
 ## Precios, certificaciones y fotografía — 8 de octubre de 2026
 
@@ -55,19 +63,20 @@ Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaci
 
 | Artículo | Precio MXN | Presentación / estado |
 | --- | --- | --- |
-| Activa tu fuerza | $1,490 | 90 días |
-| Tu balance completo | $2,490 | 90 días |
-| El lado dulce del plan | $2,990 | 90 días y un paquete inicial de postres |
-| Psy Cookie | $59 | Por pieza; chocolate con adaptógenos y cáñamo |
+| Activa tu fuerza | $1,490 | A distancia, 90 días, entrega única de rutina con video |
+| Tu balance completo | $2,490 | A distancia, 90 días, entrega única de rutina con video y alimentación |
+| El lado dulce del plan | $2,990 | A distancia, 90 días, entrega única y un paquete inicial de postres |
+| Entrena con Carly | $2,200 | Presencial en La Barca, 1 mes, sin cobro recurrente |
+| Psi Cookie | $59 | Por pieza; chocolate con adaptógenos y cáñamo |
 | Core Cookie | $55 | Por pieza; vainilla con centro firme de chocolate |
 | Mermelada sin azúcar | $129 | 300 g |
 | Golden milk | $189 | 250 g |
-| Pastel de zanahoria | $95 / $590 | Individual, 1 porción / completo, 15 cm de diámetro |
-| Cheesecake Carlyfit | $99 / $590 | Individual, 1 porción / completo, 15 cm de diámetro |
-| Tiramisú saludable | $109 | Individual, 1 porción |
-| Minitartaleta Crumble de Piña y Dátil | $65 | 1 pieza |
+| Pastel de zanahoria | $95 / $750 | Individual, 1 porción / completo, 15 cm de diámetro |
+| Cheesecake Carlyfit | $99 / $720 | Individual, 1 porción / completo, 15 cm de diámetro |
+| Tiramisú saludable | $140 | Individual, 1 porción |
+| Minitartaleta Crumble de Piña y Dátil | $95 | 1 pieza |
 
-El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los tres planes incluyen rutina de movilidad. El 8 de octubre el usuario pidió retirar la leyenda «precio sugerido», conservando los importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
+El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los planes incluyen rutina de movilidad. Los tres a distancia se entregan una sola vez, con video explicativo, adaptados a la vida diaria para casa o gimnasio. El presencial es mensual y sus horarios e inicio se acuerdan con Carly. El 8 de octubre el usuario pidió retirar la leyenda «precio sugerido», conservando los importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
 
 ## Ejecutar en una computadora
 
