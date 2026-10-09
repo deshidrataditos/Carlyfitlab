@@ -1,5 +1,6 @@
 import {catalog, dessertPackDescription, dessertPackPreparation} from './catalog';
 import {DESSERTS_PER_PACK} from './dessert-pack';
+import {cheesecakeToppings} from './product-options';
 import {contentInput, type StoreContent} from './store-input';
 
 export const MAX_ASSISTANT_KNOWLEDGE_CHARACTERS = 10000;
@@ -57,7 +58,8 @@ export function buildAssistantKnowledge(content: unknown): string {
       `${dessertPackDescription}. Son ${DESSERTS_PER_PACK} piezas en total por paquete, no cinco variedades obligatorias. El máximo de 1 pastel individual es compartido entre zanahoria y cheesecake.`,
       'Los pasteles grandes de 15 cm se compran por separado y no se incluyen en los planes. Los postres también se pueden comprar por separado.',
       dessertPackPreparation,
-      'Los tres planes duran 90 días, con una sola entrega de rutina adaptada a casa o gimnasio, video explicativo y movilidad. La alimentación se incluye solo donde el catálogo lo indica.',
+      'Los tres planes duran 90 días, con una sola entrega de rutina adaptada a casa o gimnasio, video explicativo, movilidad y seguimiento del avance y la progresión durante el plan. La frecuencia de revisión y las condiciones de ajustes se consultan con Carly. La alimentación se incluye solo donde el catálogo lo indica.',
+      `El cheesecake individual y el grande de 15 cm permiten elegir la mermelada de cobertura: ${cheesecakeToppings.map(topping => topping.label).join(', ')}; todas endulzadas con alulosa.`,
       'La atención presencial se acuerda directamente con Carly: costo, duración de sesiones y ubicación se cotizan. No hay un precio fijo publicado para presencial.',
       'Recolección en La Barca, Jalisco. Los envíos a México requieren confirmar disponibilidad, condiciones y costo con Carly antes de pagar. El pago en línea de productos físicos se ofrece para recolección; para envío pide una cotización por WhatsApp.',
       'Si una ficha está vacía, no figura o aparece abreviada, consulta el dato completo con Carly antes de comprar. No se garantiza disponibilidad inmediata ni ausencia de alérgenos.',

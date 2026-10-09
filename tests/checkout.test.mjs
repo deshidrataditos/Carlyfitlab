@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-import {catalog,validateCart} from '../lib/catalog.ts';
+import {loadProductModule} from './load-product-module.mjs';
+const {catalog,validateCart}=loadProductModule('catalog');
 
-const desserts={};
-runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/dessert-pack.ts',import.meta.url),'utf8'),{
- compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
-}).outputText,{exports:desserts,Error,require:name=>{assert.equal(name,'./catalog');return {catalog};}});
+const desserts=loadProductModule('dessert-pack');
+const productOptions=loadProductModule('product-options');
 
 // Exercise the real Worker route with isolated DB and payment API boundaries.
 const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.ts',import.meta.url),'utf8'),{
@@ -32,6 +31,7 @@ function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMa
  const dependencies={
   'cloudflare:workers':{env:{DB:{prepare:sql=>({bind:(...args)=>({run:async()=>{writes.push({sql,args});}})})}}},
   '@/lib/catalog':{catalog,validateCart},
+  '@/lib/product-options':productOptions,
   '@/lib/dessert-pack':desserts,
   '@/lib/supabase-server':{memberSession:()=>session},
   '@/lib/payment':{paymentConfig:()=>config,sellerEnvironmentMatches:async()=>sellerMatches,mpRequest:async(...args)=>{
@@ -91,8 +91,8 @@ test('cake sizes remain distinct in the payment and stored order, with server pr
  const items=[
   {id:'pastel-zanahoria',quantity:2,price:1},
   {id:'pastel-zanahoria-grande',quantity:1,price:1},
-  {id:'cheesecake-carlyfit',quantity:1,price:1},
-  {id:'cheesecake-carlyfit-grande',quantity:1,price:1},
+  {id:'cheesecake-carlyfit',quantity:1,price:1,cheesecakeTopping:'frutos-rojos'},
+  {id:'cheesecake-carlyfit-grande',quantity:1,price:1,cheesecakeTopping:'fresa-chia'},
  ];
  const fixture=checkoutHarness({items});
  assert.equal((await fixture.run()).status,200);
@@ -130,7 +130,7 @@ test('a complete five-piece pack persists its selection without charging for its
 });
 
 test('two dessert plans require ten included pieces while paid products remain separately priced',async()=>{
- const selection=[{id:'galletas',quantity:8},{id:'pastel-zanahoria',quantity:1},{id:'cheesecake-carlyfit',quantity:1}];
+ const selection=[{id:'galletas',quantity:8},{id:'pastel-zanahoria',quantity:1},{id:'cheesecake-carlyfit',quantity:1,cheesecakeTopping:'manzana-canela'}];
  const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:2},{id:'galletas',quantity:1}],dessertSelection:selection});
  assert.equal((await fixture.run()).status,200);
  assert.equal(fixture.orderWrite().args[2],603900);
@@ -195,5 +195,41 @@ test('anonymous sessions remain guest orders and unavailable verification cannot
   assert.equal((await fixture.run()).status,400);
   assert.equal(fixture.writes.length,0);
   assert.equal(fixture.calls.length,0);
+ }
+});
+
+test('topping selections are canonical in paid order titles and cannot change the cheesecake price',async()=>{
+ for(const {value,label} of productOptions.cheesecakeToppings){
+  const fixture=checkoutHarness({items:[{id:'cheesecake-carlyfit-grande',quantity:2,cheesecakeTopping:value,unit_price:1,price:1,toppingLabel:'Inventado'}]});
+  assert.equal((await fixture.run()).status,200);
+  const sent=fixture.calls[0][2].items[0];
+  assert.equal(sent.unit_price,720);
+  assert.equal(fixture.orderWrite().args[2],144000);
+  assert.ok(sent.title.includes(`Mermelada de ${label.toLocaleLowerCase('es-MX')} · endulzada con alulosa`));
+  assert.ok(!sent.title.includes('Inventado'));
+  assert.deepEqual(JSON.parse(fixture.orderWrite().args[1]),JSON.parse(JSON.stringify(fixture.calls[0][2].items)));
+ }
+});
+
+test('a bundled cheesecake stores its selected topping and includes it in the plan payment title without surcharge',async()=>{
+ const selection=[{id:'galletas',quantity:4},{id:'cheesecake-carlyfit',quantity:1,cheesecakeTopping:'manzana-canela',price:1}];
+ const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:1}],dessertSelection:selection});
+ assert.equal((await fixture.run()).status,200);
+ assert.equal(fixture.orderWrite().args[2],299000);
+ const persisted=JSON.parse(fixture.orderWrite().args[9]);
+ assert.equal(persisted[1].cheesecakeTopping,'manzana-canela');
+ assert.equal(persisted[1].price,undefined);
+ assert.match(fixture.calls[0][2].items[0].title,/Cheesecake del paquete: Mermelada de manzana canela/);
+});
+
+test('missing or adulterated toppings fail before any payment or database side effects',async()=>{
+ for(const cheesecakeTopping of [undefined,'chocolate','',null,{},1]){
+  for(const bundled of [false,true]){
+   const cheese={id:'cheesecake-carlyfit',quantity:1,...(cheesecakeTopping===undefined?{}:{cheesecakeTopping})};
+   const fixture=checkoutHarness(bundled?{items:[{id:'dulce-90',quantity:1}],dessertSelection:[{id:'galletas',quantity:4},cheese]}:{items:[cheese]});
+   assert.equal((await fixture.run()).status,400);
+   assert.equal(fixture.writes.length,0);
+   assert.equal(fixture.calls.length,0);
+  }
  }
 });

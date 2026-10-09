@@ -1,5 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {catalog,validateCart} from '@/lib/catalog';
+import {productOptionLabel,requireCheesecakeToppings} from '@/lib/product-options';
 import {validateDessertSelection,dessertPackCount} from '@/lib/dessert-pack';
 import {memberSession} from '@/lib/supabase-server';
 import {paymentConfig,mpRequest,sellerEnvironmentMatches} from '@/lib/payment';
@@ -20,11 +21,12 @@ export async function POST(request:Request){
   const lines=validateCart(body.items);
   if(lines.some(line=>catalog.find(item=>item.id===line.id)?.available===false))return finish(Response.json({error:'El acompañamiento presencial ahora se acuerda directamente con Carly. Retíralo del carrito para continuar.'},{status:409}));
   let dessertSelection;
-  try{dessertSelection=validateDessertSelection(body.dessertSelection??[],dessertPackCount(lines));}catch(error){return finish(Response.json({error:error instanceof Error?error.message:'Revisa las cinco piezas de tu paquete.'},{status:400}));}
+  try{requireCheesecakeToppings(lines);dessertSelection=validateDessertSelection(body.dessertSelection??[],dessertPackCount(lines));}catch(error){return finish(Response.json({error:error instanceof Error?error.message:'Revisa las cinco piezas de tu paquete.'},{status:400}));}
   if(!['pickup','digital','shipping'].includes(String(body.delivery)))throw new Error('Entrega inválida.');
   if(body.delivery==='shipping')return Response.json({error:'Primero confirma el costo de envío con Carly por WhatsApp. Te compartirá el importe total antes de pagar.'},{status:409});
   if(lines.some(l=>catalog.find(p=>p.id===l.id)!.kind==='product'||l.id==='dulce-90')&&body.delivery!=='pickup')throw new Error('Confirma la entrega de tus productos.');
-  const items=lines.map(l=>{const p=catalog.find(p=>p.id===l.id)!;return {id:p.id,title:p.presentation?`${p.name} — ${p.presentation}`:p.name,quantity:l.quantity,currency_id:'MXN',unit_price:p.price};});
+  const includedCheesecake=dessertSelection.map(line=>{const option=productOptionLabel(line);return option?`Cheesecake del paquete: ${option}`:'';}).filter(Boolean).join('; ');
+  const items=lines.map(l=>{const p=catalog.find(p=>p.id===l.id)!;const option=l.id==='dulce-90'?includedCheesecake:productOptionLabel(l);const title=p.presentation?`${p.name} — ${p.presentation}`:p.name;return {id:p.id,title:`${title}${option?` — ${option}`:''}`,quantity:l.quantity,currency_id:'MXN',unit_price:p.price};});
   const amount=items.reduce((n,i)=>n+i.quantity*i.unit_price*100,0);
   if(!await sellerEnvironmentMatches(config))return Response.json({error:'El pago no está disponible en este momento. Contacta a Carly para verificarlo.'},{status:503});
   let userId:string|null=null;

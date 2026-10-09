@@ -8,7 +8,7 @@ const cache = new Map();
 function load(path) {
   const normalized = path.replace(/^\.\//, '').replace(/\.ts$/, '');
   if (cache.has(normalized)) return cache.get(normalized);
-  assert.ok(['assistant-knowledge', 'catalog', 'dessert-pack', 'store-input', 'member-input'].includes(normalized), 'Knowledge must only import pure public data helpers');
+  assert.ok(['assistant-knowledge', 'catalog', 'dessert-pack', 'product-options', 'store-input', 'member-input'].includes(normalized), 'Knowledge must only import pure public data helpers');
   const exported = {};
   cache.set(normalized, exported);
   const compiled = ts.transpileModule(readFileSync(new URL(`../lib/${normalized}.ts`, import.meta.url), 'utf8'), {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022}}).outputText;

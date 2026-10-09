@@ -3,6 +3,8 @@
 import {useId} from 'react';
 import {Check, Minus, Plus} from 'lucide-react';
 import {DESSERTS_PER_PACK,dessertPackProducts,dessertSelectionCount,isDessertPackCake,type DessertSelection} from '@/lib/dessert-pack';
+import {isCheesecake} from '@/lib/product-options';
+import CheesecakeToppingPicker from './product-options';
 import './dessert-pack.css';
 
 export type DessertPackPickerProps={
@@ -19,15 +21,16 @@ export default function DessertPackPicker({packCount,value,onChange,disabled=fal
  const chosen=dessertSelectionCount(value);
  const remaining=total-chosen;
  const cakeCount=value.reduce((count,item)=>count+(isDessertPackCake(item.id)?item.quantity:0),0);
- const complete=remaining===0&&cakeCount<=packCount;
- const status=remaining>0?`Te ${remaining===1?'falta 1 pieza':`faltan ${remaining} piezas`}`:remaining<0?`Retira ${-remaining} ${remaining===-1?'pieza':'piezas'}`:cakeCount>packCount?'Reduce los pasteles individuales':'Tu paquete está completo';
+ const missingTopping=value.some(item=>isCheesecake(item.id)&&!item.cheesecakeTopping);
+ const complete=remaining===0&&cakeCount<=packCount&&!missingTopping;
+ const status=remaining>0?`Te ${remaining===1?'falta 1 pieza':`faltan ${remaining} piezas`}`:remaining<0?`Retira ${-remaining} ${remaining===-1?'pieza':'piezas'}`:cakeCount>packCount?'Reduce los pasteles individuales':missingTopping?'Elige la mermelada de tu cheesecake':'Tu paquete está completo';
  function change(id:string,delta:number){
   if(disabled)return;
   const current=value.find(item=>item.id===id)?.quantity??0;
   if(delta>0&&(remaining<=0||(isDessertPackCake(id)&&cakeCount>=packCount)))return;
   if(delta<0&&current===0)return;
   const next=current+delta;
-  onChange(current?value.map(item=>item.id===id?{id,quantity:next}:item).filter(item=>item.quantity>0):[...value,{id,quantity:next}]);
+  onChange(current?value.map(item=>item.id===id?{...item,quantity:next}:item).filter(item=>item.quantity>0):[...value,{id,quantity:next}]);
  }
  return <section className="dessert-pack" aria-labelledby={`${sectionId}-title`}>
   <div className="dessert-pack-heading">
@@ -45,7 +48,8 @@ export default function DessertPackPicker({packCount,value,onChange,disabled=fal
   <p className="dessert-pack-rule" id={`${sectionId}-rule`}>Hasta {packCount} {packCount===1?'pastel individual':'pasteles individuales'} en total, entre zanahoria y cheesecake. Los pasteles grandes no están incluidos.</p>
   <ul className="dessert-pack-products" aria-describedby={`${sectionId}-rule`}>
    {dessertPackProducts.map(item=>{
-    const quantity=value.find(line=>line.id===item.id)?.quantity??0;
+    const line=value.find(line=>line.id===item.id);
+    const quantity=line?.quantity??0;
     const cake=isDessertPackCake(item.id);
     const cakeLimit=cake&&cakeCount>=packCount;
     const addDisabled=disabled||remaining<=0||cakeLimit;
@@ -58,6 +62,7 @@ export default function DessertPackPicker({packCount,value,onChange,disabled=fal
       <output aria-label={`Piezas de ${displayName}`}>{quantity}</output>
       <button type="button" disabled={addDisabled} onClick={()=>change(item.id,1)} aria-label={`Agregar una pieza de ${displayName}`} title={limitNote}><Plus size={15} aria-hidden="true"/></button>
      </div>
+     {isCheesecake(item.id)&&quantity>0&&<CheesecakeToppingPicker value={line?.cheesecakeTopping} quantity={quantity} label={`${displayName} incluido en el plan`} disabled={disabled} onChange={cheesecakeTopping=>onChange(value.map(selected=>selected.id===item.id?{...selected,cheesecakeTopping}:selected))}/>}
     </li>;
    })}
   </ul>

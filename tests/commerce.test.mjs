@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateCart,catalog} from '../lib/catalog.ts';
+import {loadProductModule} from './load-product-module.mjs';
+const {catalog,validateCart}=loadProductModule('catalog');
 import {validWebhook,paymentConfig,reconcilePaymentSql,paymentUpdatedAt} from '../lib/payment.ts';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
@@ -10,7 +11,7 @@ test('cart rejects unrecognized items, duplicates and invalid quantities',()=>{
 });
 test('cart drops client-supplied prices and totals',()=>{
  const lines=validateCart([{id:'galletas',quantity:2,price:0,total:0}]);
- assert.deepEqual(lines,[{id:'galletas',quantity:2}]);
+ assert.deepEqual(JSON.parse(JSON.stringify(lines)),[{id:'galletas',quantity:2}]);
  assert.equal(catalog.find(p=>p.id===lines[0].id).price*lines[0].quantity,118);
 });
 test('signed webhook validates and rejects altered payment IDs and signatures',async()=>{

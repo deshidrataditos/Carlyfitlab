@@ -1,6 +1,7 @@
 import {catalog, type CartLine} from './catalog';
+import {validateCheesecakeTopping,requireCheesecakeToppings,productOptionLabel} from './product-options';
 
-export type DessertSelection = {id:string;quantity:number}[];
+export type DessertSelection = CartLine[];
 
 export const DESSERTS_PER_PACK = 5;
 export const dessertPackProducts = catalog.filter(item=>item.kind==='product'&&!item.excludedFromPlans);
@@ -35,17 +36,19 @@ export function validateDessertSelection(value:unknown,packCount:number):Dessert
  const seen=new Set<string>();
  const selection:DessertSelection=value.map((row:unknown)=>{
   if(!row||typeof row!=='object'||Array.isArray(row))throw new Error('Revisa los productos de tu paquete de postres.');
-  const {id,quantity}=row as {id:unknown;quantity:unknown};
+  const {id,quantity,cheesecakeTopping:rawTopping}=row as {id:unknown;quantity:unknown;cheesecakeTopping?:unknown};
   if(typeof id!=='string'||!eligibleIds.has(id))throw new Error('Este producto no se puede incluir en el paquete de postres. Los pasteles grandes se compran por separado.');
   if(seen.has(id))throw new Error('Cada producto debe aparecer una sola vez en el paquete de postres.');
   if(typeof quantity!=='number'||!Number.isSafeInteger(quantity)||quantity<1||quantity>expected)throw new Error('Revisa la cantidad de cada producto del paquete de postres.');
   seen.add(id);
-  return {id,quantity};
+  const cheesecakeTopping=validateCheesecakeTopping(id,rawTopping);
+  return {id,quantity,...(cheesecakeTopping?{cheesecakeTopping}:{})};
  });
  const cakeCount=selection.reduce((total,item)=>total+(isDessertPackCake(item.id)?item.quantity:0),0);
  if(cakeCount>packCount)throw new Error(`Puedes incluir hasta ${packCount} ${packCount===1?'pastel individual':'pasteles individuales'} en total, entre zanahoria y cheesecake.`);
  const total=dessertSelectionCount(selection);
  if(total!==expected)throw new Error(`Elige exactamente ${expected} piezas para ${packCount===1?'tu plan con postres':`tus ${packCount} planes con postres`}. ${total<expected?`Te faltan ${expected-total}.`:`Retira ${total-expected}.`}`);
+ requireCheesecakeToppings(selection);
  return selection;
 }
 
@@ -59,13 +62,16 @@ export function adjustSelectionForPacks(value:unknown,packCount:number):DessertS
  const selection:DessertSelection=[];
  for(const row of value){
   if(!row||typeof row!=='object'||Array.isArray(row))continue;
-  const {id,quantity}=row as {id:unknown;quantity:unknown};
+  const {id,quantity,cheesecakeTopping:rawTopping}=row as {id:unknown;quantity:unknown;cheesecakeTopping?:unknown};
   if(typeof id!=='string'||!eligibleIds.has(id)||seen.has(id)||typeof quantity!=='number'||!Number.isSafeInteger(quantity)||quantity<1)continue;
   seen.add(id);
   const cake=isDessertPackCake(id);
   const kept=Math.min(quantity,remaining,cake?cakesRemaining:remaining);
   if(kept>0){
-   selection.push({id,quantity:kept});
+   // Old saved selections remain editable even if they predate topping choices.
+   let cheesecakeTopping;
+   try{cheesecakeTopping=validateCheesecakeTopping(id,rawTopping);}catch{cheesecakeTopping=undefined;}
+   selection.push({id,quantity:kept,...(cheesecakeTopping?{cheesecakeTopping}:{})});
    remaining-=kept;
    if(cake)cakesRemaining-=kept;
   }
@@ -76,6 +82,7 @@ export function adjustSelectionForPacks(value:unknown,packCount:number):DessertS
 export function dessertSelectionSummary(selection:DessertSelection):string {
  return selection.map(line=>{
   const item=dessertPackProducts.find(product=>product.id===line.id);
-  return item?`${line.quantity} × ${item.name}${item.presentation?` (${item.presentation})`:''}`:'';
+  const option=productOptionLabel(line);
+  return item?`${line.quantity} × ${item.name}${item.presentation?` (${item.presentation})`:''}${option?` — ${option}`:''}`:'';
  }).filter(Boolean).join('; ');
 }

@@ -23,7 +23,7 @@ export function buildWelcomeEmail(): {subject: string; html: string; text: strin
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background-color:#f1eee7;"><tr><td align="center" style="padding:24px 12px;">
 <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background-color:#fffaf1;border:1px solid #dfded2;">
-<tr><td style="padding:28px 28px 24px;border-bottom:1px solid #dfded2;"><a href="${siteUrl}" style="text-decoration:none;color:#153f44;"><span style="font-size:30px;line-height:34px;font-weight:700;letter-spacing:-1px;">carlyfit</span> <span style="font-size:12px;line-height:20px;font-weight:700;letter-spacing:3px;color:#bb542b;">LAB</span></a><p style="margin:7px 0 0;font-size:10px;line-height:16px;letter-spacing:2px;">ENTRENA · NUTRE · DISFRUTA</p></td></tr>
+<tr><td style="padding:28px 28px 24px;border-bottom:1px solid #dfded2;"><a href="${siteUrl}" style="text-decoration:none;color:#153f44;"><span style="font-size:30px;line-height:34px;font-weight:700;letter-spacing:-1px;">carlyfit</span> <span style="font-size:12px;line-height:20px;font-weight:700;letter-spacing:3px;color:#bb542b;">LAB</span></a><p style="margin:7px 0 0;font-size:10px;line-height:16px;letter-spacing:2px;">FORMULANDO TU MEJOR VERSIÓN</p></td></tr>
 <tr><td style="padding:24px 28px;background-color:#ffe59a;"><p style="margin:0 0 10px;font-size:11px;font-weight:700;line-height:18px;letter-spacing:2px;">TU ESPACIO EN CARLYFIT</p><h1 style="margin:0;font-size:30px;line-height:36px;letter-spacing:-1px;font-weight:700;">Qué gusto tenerte aquí.</h1></td></tr>
 <tr><td style="padding:28px 28px 8px;"><p style="margin:0 0 12px;font-size:16px;line-height:26px;">Hola,</p><p style="margin:0 0 24px;font-size:16px;line-height:26px;">${escape(introduction)}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${featureRows}</table>
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:4px 0 16px;"><tr><td align="center" bgcolor="#155d69" style="background-color:#155d69;border-radius:6px;mso-padding-alt:15px 24px;"><a href="${accountUrl}" style="display:inline-block;padding:15px 24px;border:1px solid #155d69;border-radius:6px;font-size:16px;line-height:22px;font-weight:700;text-decoration:none;color:#ffffff;">Entrar a mi cuenta</a></td></tr></table>
@@ -34,6 +34,7 @@ export function buildWelcomeEmail(): {subject: string; html: string; text: strin
 </td></tr></table></body></html>`;
   const text = [
     subject,
+    'Formulando tu mejor versión',
     'Hola,',
     introduction,
     ...features.map(([title, body]) => `${title}\n${body}`),

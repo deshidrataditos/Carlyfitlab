@@ -1,0 +1,13 @@
+.cheesecake-options-note{font-size:12px;line-height:1.7;color:#536c60;margin-top:12px}
+.cheesecake-topping{display:grid;min-width:0;gap:6px;margin-top:12px}
+.cheesecake-topping label{font-size:12px;line-height:1.5;font-weight:600;color:#234b4c}
+.cheesecake-topping select{display:block;min-width:0;width:100%;max-width:100%;border:1px solid #bdcabe;border-radius:7px;background:#fffdf8;color:#193d42;padding:10px 25px 10px 9px;font:14px 'DM Sans',sans-serif;cursor:pointer}
+.cheesecake-topping select:focus-visible{outline:2px solid #18626a;outline-offset:2px}
+.cheesecake-topping select:disabled{opacity:.6;cursor:wait}
+.cheesecake-topping p{font-size:11px;line-height:1.6;color:#647368}
+.cart-line-main{min-width:0}
+.cart-line:has(>.cheesecake-topping){display:grid;grid-template-columns:70px minmax(0,1fr) auto;column-gap:14px;row-gap:0}
+.cart-line>.cheesecake-topping{grid-column:1/-1}
+.dessert-pack-product:has(.cheesecake-topping){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}
+.dessert-pack-product .cheesecake-topping{grid-column:1/-1;margin-top:2px}
+@media(max-width:760px){.cheesecake-topping select{font-size:16px}}

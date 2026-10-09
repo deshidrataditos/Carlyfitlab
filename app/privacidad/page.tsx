@@ -11,7 +11,7 @@ export const metadata:Metadata = {
 export default function PrivacyPage() {
   return <main className={`wrap ${styles.page}`}>
     <header className={styles.header}>
-      <a href="/" className="brand" aria-label="Carlyfit Lab, inicio"><img src="/images/carlyfit-brand-mark.png" width="48" height="48" alt=""/><div className="wordmark">carlyfit<span>LAB</span><i>ENTRENA · NUTRE · DISFRUTA</i></div></a>
+      <a href="/" className="brand" aria-label="Carlyfit Lab, inicio"><img src="/images/carlyfit-brand-mark.png" width="48" height="48" alt=""/><div className="wordmark">carlyfit<span>LAB</span><i>FORMULANDO TU MEJOR VERSIÓN</i></div></a>
       <a href="/" className="text-link"><ArrowLeft size={17} aria-hidden="true"/> Volver a la tienda</a>
     </header>
 
@@ -90,6 +90,6 @@ export default function PrivacyPage() {
         </div>
       </aside>
     </div>
-    <div className={styles.bottom}><a href="/" className="text-link"><ArrowLeft size={17} aria-hidden="true"/> Volver a Carlyfit Lab</a><span>Entrena · Nutre · Disfruta</span></div>
+    <div className={styles.bottom}><a href="/" className="text-link"><ArrowLeft size={17} aria-hidden="true"/> Volver a Carlyfit Lab</a><span>Formulando tu mejor versión</span></div>
   </main>;
 }

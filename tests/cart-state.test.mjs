@@ -1,21 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {runInNewContext} from 'node:vm';
-import ts from 'typescript';
-import {catalog,validateCart} from '../lib/catalog.ts';
-
-function loadModule(path,dependencies){
- const exported={};
- runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{
-  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
- }).outputText,{exports:exported,Error,require:name=>{assert.ok(name in dependencies,`Unexpected dependency: ${name}`);return dependencies[name];}});
- return exported;
-}
-const desserts=loadModule('../lib/dessert-pack.ts',{'./catalog':{catalog}});
-const {emptyCartState,parseCartState,cartWithItems,cartWithDesserts,trackCheckout,linkCheckout,discardCheckout,settleCheckout}=loadModule('../lib/cart-state.ts',{
- './catalog':{catalog,validateCart},'./dessert-pack':desserts,
-});
+import {loadProductModule} from './load-product-module.mjs';
+const desserts=loadProductModule('dessert-pack');
+const {emptyCartState,parseCartState,cartWithItems,cartWithDesserts,trackCheckout,linkCheckout,discardCheckout,settleCheckout}=loadProductModule('cart-state');
 const cookie=quantity=>({id:'galletas',quantity});
 const core=quantity=>({id:'core-cookie',quantity});
 const dulce=quantity=>({id:'dulce-90',quantity});
@@ -156,4 +143,54 @@ test('retired monthly plans leave current carts while their old receipts remain 
  assert.deepEqual(plain(settleCheckout(restored,'old-monthly','approved').items),[cookie(1)]);
  assert.deepEqual(plain(parseCartState(null,JSON.stringify([monthly,cookie(1)])).items),[cookie(1)]);
  assert.deepEqual(plain(cartWithItems(emptyCartState(),[monthly,cookie(1)]).items),[cookie(1)]);
+});
+
+const cheesecake=(quantity,cheesecakeTopping='frutos-rojos')=>({id:'cheesecake-carlyfit',quantity,cheesecakeTopping});
+test('cart and checkout snapshots preserve toppings across reloads and successful settlement',()=>{
+ const original=checkout([cheesecake(2)]);
+ const restored=parseCartState(JSON.stringify(original),null);
+ assert.deepEqual(plain(restored),plain(original));
+ const increased=cartWithItems(restored,[cheesecake(3)]);
+ assert.deepEqual(plain(settleCheckout(increased,'order','approved').items),[cheesecake(1)]);
+ const bundled=dessertCheckout([cookie(4),cheesecake(1,'fresa-chia')]);
+ const persisted=parseCartState(JSON.stringify(bundled),null);
+ assert.deepEqual(plain(persisted.dessertSelection),[cookie(4),cheesecake(1,'fresa-chia')]);
+ assert.deepEqual(plain(settleCheckout(persisted,'order','approved').items),[]);
+ assert.deepEqual(plain(settleCheckout(persisted,'order','approved').dessertSelection),[]);
+});
+
+test('changing a topping after checkout preserves the new direct selection, even if the old topping is selected again',()=>{
+ const changed=cartWithItems(checkout([cheesecake(2)]),[cheesecake(2,'fresa-chia')]);
+ assert.deepEqual(plain(settleCheckout(changed,'order','approved').items),[cheesecake(2,'fresa-chia')]);
+ const reverted=cartWithItems(changed,[cheesecake(2)]);
+ assert.deepEqual(plain(settleCheckout(reverted,'order','approved').items),[cheesecake(2)]);
+});
+
+test('changing a bundled topping preserves the new complete plan selection on an older successful return',()=>{
+ const initial=dessertCheckout([cookie(4),cheesecake(1)]);
+ const changed=cartWithDesserts(initial,[cookie(4),cheesecake(1,'manzana-canela')]);
+ const result=settleCheckout(parseCartState(JSON.stringify(changed),null),'order','approved');
+ assert.deepEqual(plain(result.items),[dulce(1)]);
+ assert.deepEqual(plain(result.dessertSelection),[cookie(4),cheesecake(1,'manzana-canela')]);
+ const reverted=cartWithDesserts(changed,[cookie(4),cheesecake(1)]);
+ assert.deepEqual(plain(settleCheckout(reverted,'order','approved').dessertSelection),[cookie(4),cheesecake(1)]);
+});
+
+test('settling persisted snapshots never matches a different topping even without a prior cart edit event',()=>{
+ const state=checkout([cheesecake(1)]);
+ state.items=[cheesecake(1,'fresa-chia')];
+ assert.deepEqual(plain(settleCheckout(state,'order','approved').items),[cheesecake(1,'fresa-chia')]);
+ const bundled=dessertCheckout([cookie(4),cheesecake(1)]);
+ bundled.dessertSelection=[cookie(4),cheesecake(1,'fresa-chia')];
+ const settled=settleCheckout(bundled,'order','approved');
+ assert.deepEqual(plain(settled.items),[dulce(1)]);
+ assert.deepEqual(plain(settled.dessertSelection),[cookie(4),cheesecake(1,'fresa-chia')]);
+});
+
+test('old cheesecake carts and checkout receipts keep their contents until a customer chooses a topping',()=>{
+ const oldCheese={id:'cheesecake-carlyfit',quantity:1};
+ const legacy=parseCartState(null,JSON.stringify([oldCheese,cookie(2)]));
+ assert.deepEqual(plain(legacy.items),[oldCheese,cookie(2)]);
+ const saved={version:1,items:[dulce(1),oldCheese],dessertSelection:[cookie(4),oldCheese],checkouts:[{id:'old',items:[dulce(1),oldCheese],dessertSelection:[cookie(4),oldCheese]}]};
+ assert.deepEqual(plain(parseCartState(JSON.stringify(saved),null)),saved);
 });

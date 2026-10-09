@@ -1,5 +1,6 @@
 import {catalog,validateCart,type CartLine} from './catalog';
 import {adjustSelectionForPacks,dessertPackCount,type DessertSelection} from './dessert-pack';
+import {isCheesecake,sameProductChoice} from './product-options';
 
 export const CART_STORAGE_KEY='carlyfit-cart-state';
 export const LEGACY_CART_KEY='carlyfit-cart-draft';
@@ -24,11 +25,16 @@ export function parseCartState(saved:string|null,legacy:string|null):CartState{
 // Adding it again is a new selection and must survive an older payment return.
 export function cartWithItems(state:CartState,items:CartLine[]):CartState{
  const next=available(lines(items));
- const removed=new Map(state.items.map(line=>[line.id,Math.max(0,line.quantity-(next.find(item=>item.id===line.id)?.quantity||0))]));
- return {...state,items:next,dessertSelection:adjustSelectionForPacks(state.dessertSelection,dessertPackCount(next)),checkouts:state.checkouts.map(checkout=>{const items=checkout.items.map(line=>({...line,quantity:Math.max(0,line.quantity-(removed.get(line.id)||0))})).filter(line=>line.quantity>0);return {...checkout,items,dessertSelection:adjustSelectionForPacks(checkout.dessertSelection,dessertPackCount(items))};})};
+ const removed=state.items.map(line=>({...line,quantity:Math.max(0,line.quantity-(next.find(item=>sameProductChoice(item,line))?.quantity||0))}));
+ return {...state,items:next,dessertSelection:adjustSelectionForPacks(state.dessertSelection,dessertPackCount(next)),checkouts:state.checkouts.map(checkout=>{const items=checkout.items.map(line=>({...line,quantity:Math.max(0,line.quantity-(removed.find(item=>sameProductChoice(item,line))?.quantity||0))})).filter(line=>line.quantity>0);return {...checkout,items,dessertSelection:adjustSelectionForPacks(checkout.dessertSelection,dessertPackCount(items))};})};
 }
 export function cartWithDesserts(state:CartState,selection:DessertSelection):CartState{
- return {...state,dessertSelection:adjustSelectionForPacks(selection,dessertPackCount(state.items))};
+ const next=adjustSelectionForPacks(selection,dessertPackCount(state.items));
+ const changedTopping=state.dessertSelection.some(line=>isCheesecake(line.id)&&next.some(item=>item.id===line.id&&!sameProductChoice(item,line)));
+ // A new topping makes the plan a new choice. An older payment must not consume it,
+ // even if the shopper later selects the old topping again.
+ const checkouts=changedTopping?state.checkouts.map(checkout=>({...checkout,items:checkout.items.filter(line=>line.id!=='dulce-90'),dessertSelection:[]})):state.checkouts;
+ return {...state,dessertSelection:next,checkouts};
 }
 export function trackCheckout(state:CartState,id:string):CartState{
  return {...state,checkouts:[...state.checkouts.filter(checkout=>checkout.id!==id),{id,items:state.items.map(line=>({...line})),dessertSelection:state.dessertSelection.map(line=>({...line}))}].slice(-20)};
@@ -42,9 +48,11 @@ export function discardCheckout(state:CartState,id:string):CartState{
 export function settleCheckout(state:CartState,orderId:string,status:string):CartState{
  const paid=state.checkouts.find(checkout=>checkout.id===orderId);
  if(status!=='approved'||!paid)return state;
- const remaining=state.items.map(line=>({...line,quantity:Math.max(0,line.quantity-(paid.items.find(item=>item.id===line.id)?.quantity||0))})).filter(line=>line.quantity>0);
+ const changedPackTopping=paid.dessertSelection?.some(line=>isCheesecake(line.id)&&state.dessertSelection.some(item=>item.id===line.id&&!sameProductChoice(item,line)))??false;
+ const purchased=changedPackTopping?paid.items.filter(line=>line.id!=='dulce-90'):paid.items;
+ const remaining=state.items.map(line=>({...line,quantity:Math.max(0,line.quantity-(purchased.find(item=>sameProductChoice(item,line))?.quantity||0))})).filter(line=>line.quantity>0);
  // One persisted update removes both the purchased quantities and the receipt.
  // Reloads and other tabs cannot apply the same receipt again.
- const dessertSelection=state.dessertSelection.map(line=>({...line,quantity:Math.max(0,line.quantity-(paid.dessertSelection?.find(item=>item.id===line.id)?.quantity||0))})).filter(line=>line.quantity>0);
+ const dessertSelection=changedPackTopping?state.dessertSelection:state.dessertSelection.map(line=>({...line,quantity:Math.max(0,line.quantity-(paid.dessertSelection?.find(item=>sameProductChoice(item,line))?.quantity||0))})).filter(line=>line.quantity>0);
  return discardCheckout(cartWithItems({...state,dessertSelection},remaining),orderId);
 }

@@ -1,18 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {runInNewContext} from 'node:vm';
-import ts from 'typescript';
-import {catalog} from '../lib/catalog.ts';
+import {loadProductModule} from './load-product-module.mjs';
+const {catalog}=loadProductModule('catalog');
 
-const exported={};
-runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/dessert-pack.ts',import.meta.url),'utf8'),{
- compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
-}).outputText,{exports:exported,require:name=>{assert.equal(name,'./catalog');return {catalog};}});
-const {validateDessertSelection,adjustSelectionForPacks,dessertPackCount,dessertPackProducts,dessertSelectionCount,dessertSelectionSummary}=exported;
+const {validateDessertSelection,adjustSelectionForPacks,dessertPackCount,dessertPackProducts,dessertSelectionCount,dessertSelectionSummary}=loadProductModule('dessert-pack');
 const cookie=quantity=>({id:'galletas',quantity});
 const carrot=quantity=>({id:'pastel-zanahoria',quantity});
-const cheesecake=quantity=>({id:'cheesecake-carlyfit',quantity});
+const cheesecake=quantity=>({id:'cheesecake-carlyfit',quantity,cheesecakeTopping:'frutos-rojos'});
 const plain=value=>JSON.parse(JSON.stringify(value));
 
 test('a dessert plan requires exactly five chosen pieces and returns only canonical quantities',()=>{
@@ -77,4 +71,21 @@ test('partial stored selections discard invalid entries and duplicates without i
  const selection=[null,{id:'pastel-zanahoria-grande',quantity:1},cookie(-1),cookie(2),cookie(2),carrot(2),cheesecake(1)];
  assert.deepEqual(plain(adjustSelectionForPacks(selection,1)),[cookie(2),carrot(1)]);
  assert.deepEqual(plain(adjustSelectionForPacks([],1)),[]);
+});
+
+test('pack topping survives persistence and appears in the customer and administrator summary',()=>{
+ const selection=[cookie(4),{...cheesecake(1),cheesecakeTopping:'fresa-chia'}];
+ const restored=adjustSelectionForPacks(JSON.parse(JSON.stringify(selection)),1);
+ assert.deepEqual(plain(validateDessertSelection(restored,1)),selection);
+ assert.match(dessertSelectionSummary(restored),/Mermelada de fresa chía · endulzada con alulosa/);
+});
+
+test('old packs retain a cheesecake without selecting a flavor for the shopper, while orders require one',()=>{
+ const old=[cookie(4),{id:'cheesecake-carlyfit',quantity:1}];
+ assert.deepEqual(plain(adjustSelectionForPacks(old,1)),old);
+ assert.throws(()=>validateDessertSelection(old,1),/Elige la mermelada/);
+ for(const cheesecakeTopping of ['chocolate','',null,{},1]){
+  assert.throws(()=>validateDessertSelection([cookie(4),{...cheesecake(1),cheesecakeTopping}],1));
+ }
+ assert.throws(()=>validateDessertSelection([{...cookie(4),cheesecakeTopping:'frutos-rojos'},carrot(1)],1));
 });

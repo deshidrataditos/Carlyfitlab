@@ -3,7 +3,7 @@
 import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
 import {ArrowUpRight, Check, ChevronDown, ClipboardList, FileText, LoaderCircle, LockKeyhole, Package, Play, RefreshCw, ShieldCheck} from 'lucide-react';
 import {catalog, money} from '@/lib/catalog';
-import {dessertSelectionSummary} from '@/lib/dessert-pack';
+import {dessertSelectionSummary,type DessertSelection} from '@/lib/dessert-pack';
 import StoreAdmin from './store-admin';
 import './store-portal.css';
 
@@ -14,7 +14,7 @@ export type StoreOrder = {
   amount_cents:number; currency?:string; delivery:string; created_at:string;
   fulfillment_status:string; fulfillment_note:string|null; version:number;
   materials:Material[]; hasPlan?:boolean; planReady?:boolean;
-  dessert_selection?:{id:string; quantity:number}[]|null;
+  dessert_selection?:DessertSelection|null;
 };
 type StoreAccount = {canManageStore:boolean; orders:StoreOrder[]; intake:Intake|null; hasApprovedPlan:boolean; hasMore:boolean};
 type Resource = Material & {url:string};
