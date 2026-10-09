@@ -24,6 +24,8 @@
     "SITE_TESTING": "true",
     "ASSISTANT_ENABLED": "false",
     "WELCOME_EMAIL_ENABLED": "false",
-    "WELCOME_EMAIL_START_AT": ""
+    "WELCOME_EMAIL_START_AT": "",
+    "PLAN_EMAIL_ENABLED": "false",
+    "PLAN_EMAIL_START_AT": ""
   }
 }

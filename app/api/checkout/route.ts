@@ -28,20 +28,27 @@ export async function POST(request:Request){
   const includedCheesecake=dessertSelection.map(line=>{const option=productOptionLabel(line);return option?`Cheesecake del paquete: ${option}`:'';}).filter(Boolean).join('; ');
   const items=lines.map(l=>{const p=catalog.find(p=>p.id===l.id)!;const option=l.id==='dulce-90'?includedCheesecake:productOptionLabel(l);const title=p.presentation?`${p.name} — ${p.presentation}`:p.name;return {id:p.id,title:`${title}${option?` — ${option}`:''}`,quantity:l.quantity,currency_id:'MXN',unit_price:p.price};});
   const amount=items.reduce((n,i)=>n+i.quantity*i.unit_price*100,0);
-  if(!await sellerEnvironmentMatches(config))return Response.json({error:'El pago no está disponible en este momento. Contacta a Carly para verificarlo.'},{status:503});
+  const hasPlan=lines.some(line=>catalog.find(item=>item.id===line.id)?.kind==='plan');
   let userId:string|null=null;
+  let planEmail:string|null=null;
   if(session){
    const {data:{user},error}=await session.client.auth.getUser();
    if(error&&error.name!=='AuthSessionMissingError'&&error.status!==401&&error.status!==403)throw new Error('Member session unavailable');
-   if(user&&!user.is_anonymous){
+   if(user&&!error&&!user.is_anonymous){
     userId=user.id;
+    const confirmed=Date.parse(user.email_confirmed_at??'');
+    const google=user.app_metadata?.provider==='google'||(Array.isArray(user.app_metadata?.providers)&&user.app_metadata.providers.includes('google'));
+    if(google&&Number.isFinite(confirmed)&&confirmed<=Date.now()+300000&&user.email&&user.email.length<=254&&/^[^\s<>;,\x00-\x1f\x7f@]+@[^\s<>;,\x00-\x1f\x7f@]+\.[^\s<>;,\x00-\x1f\x7f@]+$/.test(user.email))planEmail=user.email;
+    if(hasPlan&&!planEmail)return finish(Response.json({error:'Inicia sesión con una cuenta de Google con correo confirmado para comprar tu plan y recibir la ficha inicial.',code:'PLAN_SIGN_IN_REQUIRED'},{status:403}));
     const profile=await session.client.from('profiles').select('display_name').eq('id',user.id).maybeSingle();
     if(profile.error)throw new Error('Member profile unavailable');
     await env.DB.prepare('INSERT INTO member_directory (user_id,email,display_name,updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,display_name=excluded.display_name,updated_at=excluded.updated_at').bind(user.id,user.email??'',profile.data?.display_name??'',new Date().toISOString()).run();
    }
   }
+  if(hasPlan&&(!userId||!planEmail))return finish(Response.json({error:'Inicia sesión con Google antes de pagar tu plan. Así recibirás tu ficha inicial y tendrás el material en tu cuenta.',code:'PLAN_SIGN_IN_REQUIRED'},{status:401}));
+  if(!await sellerEnvironmentMatches(config))return finish(Response.json({error:'El pago no está disponible en este momento. Contacta a Carly para verificarlo.'},{status:503}));
   const id=crypto.randomUUID();
-  await env.DB.prepare('INSERT INTO orders (id,items,amount_cents,currency,delivery,customer_name,status,created_at,user_id,dessert_selection) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(id,JSON.stringify(items),amount,'MXN',body.delivery,typeof body.customer==='string'?body.customer.trim().slice(0,100):'','pending',new Date().toISOString(),userId,JSON.stringify(dessertSelection)).run();
+  await env.DB.prepare('INSERT INTO orders (id,items,amount_cents,currency,delivery,customer_name,status,created_at,user_id,dessert_selection,plan_contact_email) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(id,JSON.stringify(items),amount,'MXN',body.delivery,typeof body.customer==='string'?body.customer.trim().slice(0,100):'','pending',new Date().toISOString(),userId,JSON.stringify(dessertSelection),hasPlan?planEmail:null).run();
   const result=await mpRequest<{id:string;init_point:string}>(config,'/checkout/preferences',{items,external_reference:id,back_urls:{success:`${config.origin}/pedido?order=${id}`,pending:`${config.origin}/pedido?order=${id}`,failure:`${config.origin}/pedido?order=${id}`},auto_return:'approved',notification_url:`${config.origin}/api/payments/webhook`,expires:true,expiration_date_to:new Date(Date.now()+86400000).toISOString()});
   const url=new URL(result.init_point);
   if(url.protocol!=='https:'||!['www.mercadopago.com.mx','sandbox.mercadopago.com.mx'].includes(url.hostname))throw new Error('Unexpected checkout URL');

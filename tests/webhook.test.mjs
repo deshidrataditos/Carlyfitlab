@@ -41,8 +41,8 @@ function paymentHarness({variables={},missing=[],payment=authoritativePayment,up
  return {payment:exported,calls,setPayment:next=>{currentPayment=next;}};
 }
 
-function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},...options}={}){
- const fixture=paymentHarness(options);const exported={};const writes=[];const reads=[];const logs=[];
+function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},emailEnqueueFails=false,...options}={}){
+ const fixture=paymentHarness(options);const exported={};const writes=[];const reads=[];const logs=[];const queued=[];const delivered=[];const background=[];
  const database=new DatabaseSync(':memory:');t.after(()=>database.close());
  for(const path of ['../drizzle/0000_abandoned_darwin.sql','../drizzle/0001_payment_update_timestamp.sql']){
   database.exec(readFileSync(new URL(path,import.meta.url),'utf8'));
@@ -55,12 +55,14 @@ function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},...options}=
  const dependencies={
   'cloudflare:workers':{env:dbAvailable?{DB}:{}},
   '@/lib/payment':fixture.payment,
+  '@/lib/plan-email':{enqueuePlanEmail:async(_bindings,id)=>{queued.push({id,status:database.prepare('SELECT status FROM orders WHERE id=?').get(id)?.status});if(emailEnqueueFails)throw new Error('email unavailable');return true;},deliverPlanEmail:async(_bindings,id)=>{delivered.push(id);}},
+  'next/server':{after:fn=>background.push(fn)},
  };
  runInNewContext(webhookRoute,{
   exports:exported,require:name=>{assert.ok(name in dependencies);return dependencies[name];},
   URL,Response,console:{error:(...args)=>logs.push(args)},
  });
- return {...fixture,writes,reads,logs,run:request=>exported.POST(request),
+ return {...fixture,writes,reads,logs,queued,delivered,flush:async()=>{for(const fn of background.splice(0))await fn();},run:request=>exported.POST(request),
   order:()=>({...database.prepare("SELECT status,payment_id FROM orders WHERE id='order-1'").get()}),
   updatedAt:()=>database.prepare("SELECT payment_updated_at FROM orders WHERE id='order-1'").get().payment_updated_at,
  };
@@ -228,4 +230,22 @@ test('live environment requires a real seller and a live payment',async t=>{
   assert.equal((await fixture.run(await signedRequest())).status,live_mode?200:400);
   assert.equal(fixture.writes.length,live_mode?1:0);
  }
+});
+
+test('plan email work starts only after authoritative reconciliation, without delaying webhook response',async t=>{
+ const fixture=webhookHarness(t);
+ assert.equal((await fixture.run(await signedRequest())).status,200);
+ assert.deepEqual(fixture.queued,[{id:'order-1',status:'approved'}]);
+ assert.deepEqual(fixture.delivered,[]);
+ await fixture.flush();
+ assert.deepEqual(fixture.delivered,['order-1']);
+});
+
+test('email enqueue failure does not undo or reject a confirmed payment',async t=>{
+ const fixture=webhookHarness(t,{emailEnqueueFails:true});
+ assert.equal((await fixture.run(await signedRequest())).status,200);
+ assert.equal(fixture.order().status,'approved');
+ await fixture.flush();
+ assert.deepEqual(fixture.delivered,[]);
+ assert.deepEqual(fixture.logs,[]);
 });

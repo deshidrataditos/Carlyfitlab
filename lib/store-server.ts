@@ -8,7 +8,7 @@ export const PLAN_BUCKET = 'carlyfit-plans';
 export const MEMBER_ORDER_LIMIT = 50;
 export const ADMIN_ORDER_LIMIT = 20;
 export const MATERIALS_PER_ORDER = 20;
-export type StoreOrder = {id: string; user_id: string | null; items: string; status: string; amount_cents: number; currency: string; delivery: string; customer_name: string; created_at: string; fulfillment_status: string; fulfillment_note: string; version: number; dessert_selection: string | null; email?: string | null};
+export type StoreOrder = {id: string; user_id: string | null; items: string; status: string; amount_cents: number; currency: string; delivery: string; customer_name: string; created_at: string; fulfillment_status: string; fulfillment_note: string; version: number; dessert_selection: string | null; intake_received_at: string | null; plan_contact_email?: string | null; email?: string | null};
 export type StoreMaterial = {id: string; order_id: string; user_id: string; title: string; kind: 'routine' | 'nutrition' | 'video'; object_path: string; content_type: string; byte_size: number; state: string; created_by: string; created_at: string; expires_at: string};
 
 export function storeDatabase() {
@@ -82,7 +82,7 @@ export async function materialsForOrders(db: D1Database, orders: StoreOrder[]) {
 
 export function presentOrder(order: StoreOrder, materials: Awaited<ReturnType<typeof materialsForOrders>>) {
   const assigned = materials.filter(material => material.order_id === order.id).map(({id, title, kind}) => ({id, title, kind}));
-  return {id: order.id, items: orderItems(order), status: order.status, amount_cents: order.amount_cents, currency: order.currency, delivery: order.delivery, created_at: order.created_at, fulfillment_status: order.fulfillment_status, fulfillment_note: order.fulfillment_note, version: order.version, dessert_selection: order.dessert_selection ? JSON.parse(order.dessert_selection) : null, hasPlan: orderHasPlan(order), planReady: assigned.length > 0, materials: assigned};
+  return {id: order.id, items: orderItems(order), status: order.status, amount_cents: order.amount_cents, currency: order.currency, delivery: order.delivery, created_at: order.created_at, fulfillment_status: order.fulfillment_status, fulfillment_note: order.fulfillment_note, version: order.version, dessert_selection: order.dessert_selection ? JSON.parse(order.dessert_selection) : null, hasPlan: orderHasPlan(order), intakeReceivedAt: order.intake_received_at ?? null, planReady: assigned.length > 0, materials: assigned};
 }
 
 export async function approvedMaterialOrder(db: D1Database, orderId: string) {

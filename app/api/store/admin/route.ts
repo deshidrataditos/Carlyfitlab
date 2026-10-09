@@ -1,7 +1,7 @@
 import {MemberInputError, checkMemberOrigin, memberBody} from '@/lib/member-input';
 import {memberSession, memberJson} from '@/lib/supabase-server';
 import {checkFulfillmentTransition, fulfillmentInput, storeQuery, type StoreIntake} from '@/lib/store-input';
-import {ADMIN_ORDER_LIMIT, materialsForOrders, presentOrder, requireStoreAdmin, requireStoreUser, storeDatabase, storeFailure, type StoreOrder} from '@/lib/store-server';
+import {ADMIN_ORDER_LIMIT, materialsForOrders, orderHasPlan, presentOrder, requireStoreAdmin, requireStoreUser, storeDatabase, storeFailure, type StoreOrder} from '@/lib/store-server';
 
 export async function GET(request: Request) {
   const session = memberSession(request);
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       materialsForOrders(db, page),
       ids.length ? db.prepare(`SELECT user_id,goal,experience,place,days,minutes,equipment FROM store_intake WHERE user_id IN (${ids.map(() => '?').join(',')}) LIMIT ?`).bind(...ids, ADMIN_ORDER_LIMIT).all<StoreIntake & {user_id: string}>() : Promise.resolve({results: [] as (StoreIntake & {user_id: string})[]}),
     ]);
-    return session!.finish(memberJson({orders: page.map(order => ({...presentOrder(order, materials), user_id: order.user_id, email: order.email ?? null, customer_name: order.customer_name, intake: intakeRows.results.find(intake => intake.user_id === order.user_id) ?? null})), hasMore: orders.results.length > ADMIN_ORDER_LIMIT}));
+    return session!.finish(memberJson({orders: page.map(order => ({...presentOrder(order, materials), user_id: order.user_id, email: order.email ?? null, purchaseEmail: orderHasPlan(order) ? order.plan_contact_email ?? null : null, customer_name: order.customer_name, intake: intakeRows.results.find(intake => intake.user_id === order.user_id) ?? null})), hasMore: orders.results.length > ADMIN_ORDER_LIMIT}));
   } catch (error) { return storeFailure(session, error); }
 }
 

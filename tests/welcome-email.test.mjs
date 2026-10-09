@@ -232,9 +232,10 @@ test('custom Worker delegates fetch and awaits the scheduled queue runner', asyn
   const received=[];
   const fetch=()=>new Response('site');
   const source=ts.transpileModule(readFileSync(new URL('../workers/store-worker.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  runInNewContext(source,{exports:exported,require:name=>{
+  runInNewContext(source,{exports:exported,setTimeout:fn=>{queueMicrotask(fn);return 0;},require:name=>{
     if(name==='vinext/server/fetch-handler')return {default:{fetch}};
     if(name==='../lib/welcome-email')return {processWelcomeEmailQueue:env=>{received.push(env);return runner;}};
+    if(name==='../lib/plan-email')return {processPlanEmailQueue:async()=>{}};
     throw new Error(name);
   }});
   assert.equal(exported.default.fetch,fetch);

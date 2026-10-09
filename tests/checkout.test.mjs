@@ -14,6 +14,7 @@ const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.t
  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
 }).outputText;
 const checkoutUrl='https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=test-preference';
+const planUser={id:'12345678-1234-1234-1234-123456789abc',email:'plan-buyer@example.test',is_anonymous:false,email_confirmed_at:'2026-09-01T00:00:00Z',app_metadata:{provider:'google'}};
 
 function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}],delivery='pickup',dessertSelection,extraBody={},sessionEnabled=false,user=null,authError=null,profileError=null}={}){
  const writes=[];const calls=[];const exported={};const sessionCalls=[];
@@ -118,7 +119,7 @@ test('the retired monthly in-person plan is rejected before creating a payment o
 
 test('a complete five-piece pack persists its selection without charging for its included products',async()=>{
  const selection=[{id:'galletas',quantity:4,price:0},{id:'pastel-zanahoria',quantity:1}];
- const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:1,price:1}],dessertSelection:selection});
+ const fixture=checkoutHarness({sessionEnabled:true,user:planUser,items:[{id:'dulce-90',quantity:1,price:1}],dessertSelection:selection});
  assert.equal((await fixture.run()).status,200);
  const order=fixture.orderWrite();
  assert.equal(order.args[2],299000);
@@ -131,7 +132,7 @@ test('a complete five-piece pack persists its selection without charging for its
 
 test('two dessert plans require ten included pieces while paid products remain separately priced',async()=>{
  const selection=[{id:'galletas',quantity:8},{id:'pastel-zanahoria',quantity:1},{id:'cheesecake-carlyfit',quantity:1,cheesecakeTopping:'manzana-canela'}];
- const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:2},{id:'galletas',quantity:1}],dessertSelection:selection});
+ const fixture=checkoutHarness({sessionEnabled:true,user:planUser,items:[{id:'dulce-90',quantity:2},{id:'galletas',quantity:1}],dessertSelection:selection});
  assert.equal((await fixture.run()).status,200);
  assert.equal(fixture.orderWrite().args[2],603900);
  assert.deepEqual(JSON.parse(fixture.orderWrite().args[9]),selection);
@@ -213,7 +214,7 @@ test('topping selections are canonical in paid order titles and cannot change th
 
 test('a bundled cheesecake stores its selected topping and includes it in the plan payment title without surcharge',async()=>{
  const selection=[{id:'galletas',quantity:4},{id:'cheesecake-carlyfit',quantity:1,cheesecakeTopping:'manzana-canela',price:1}];
- const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:1}],dessertSelection:selection});
+ const fixture=checkoutHarness({sessionEnabled:true,user:planUser,items:[{id:'dulce-90',quantity:1}],dessertSelection:selection});
  assert.equal((await fixture.run()).status,200);
  assert.equal(fixture.orderWrite().args[2],299000);
  const persisted=JSON.parse(fixture.orderWrite().args[9]);
@@ -231,5 +232,33 @@ test('missing or adulterated toppings fail before any payment or database side e
    assert.equal(fixture.writes.length,0);
    assert.equal(fixture.calls.length,0);
   }
+ }
+});
+
+test('plans require a confirmed Google email before creating an order or preference',async()=>{
+ for(const options of [
+  {},{sessionEnabled:true},{sessionEnabled:true,user:{...planUser,is_anonymous:true}},
+  {sessionEnabled:true,user:{...planUser,email_confirmed_at:null}},
+  {sessionEnabled:true,user:{...planUser,email_confirmed_at:'not-a-date'}},
+  {sessionEnabled:true,user:{...planUser,email_confirmed_at:'2999-01-01T00:00:00Z'}},
+  {sessionEnabled:true,user:{...planUser,app_metadata:{provider:'email'}}},
+  {sessionEnabled:true,user:{...planUser,email:'recipient@example.test,other@example.test'}},
+  {sessionEnabled:true,user:planUser,authError:{status:401}},
+ ]){
+  const fixture=checkoutHarness({...options,items:[{id:'rutina-90',quantity:1}],delivery:'digital',extraBody:{email:planUser.email,user_id:planUser.id}});
+  const response=await fixture.run();
+  assert.ok([401,403].includes(response.status));
+  assert.equal((await response.json()).code,'PLAN_SIGN_IN_REQUIRED');
+  assert.equal(fixture.writes.length,0);
+  assert.equal(fixture.calls.length,0);
+ }
+});
+
+test('only a plan purchase snapshots the confirmed Google email; client email cannot choose a recipient',async()=>{
+ for(const id of ['rutina-90','integral-90','galletas']){
+  const fixture=checkoutHarness({sessionEnabled:true,user:planUser,items:[{id,quantity:1}],delivery:id==='galletas'?'pickup':'digital',extraBody:{email:'attacker@example.test',plan_contact_email:'attacker@example.test'}});
+  assert.equal((await fixture.run()).status,200);
+  assert.equal(fixture.orderWrite().args[8],planUser.id);
+  assert.equal(fixture.orderWrite().args[10],id==='galletas'?null:planUser.email);
  }
 });

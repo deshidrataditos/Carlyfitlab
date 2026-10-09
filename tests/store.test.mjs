@@ -18,7 +18,7 @@ const upload = {action: 'prepare', orderId, title: 'Mi rutina', kind: 'routine',
 
 function harness({user = {id: owner, email: 'member@example.invalid'}, allowed = false, permissionError = null, configured = true, missingObject = false, objectSize = 250, objectType = 'application/pdf', signingError = false, publicationFailures = 0, beforeBatch} = {}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0000_abandoned_darwin.sql', '0001_payment_update_timestamp.sql', '0002_store_portal.sql']) db.exec(readFileSync(new URL(`../drizzle/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0000_abandoned_darwin.sql', '0001_payment_update_timestamp.sql', '0002_store_portal.sql', '0006_plan_email.sql', '0007_plan_intake.sql']) db.exec(readFileSync(new URL(`../drizzle/${name}`, import.meta.url), 'utf8'));
   const calls = [];
   const statement = (sql, values = []) => ({
     bind: (...args) => statement(sql, args),
@@ -68,7 +68,7 @@ function harness({user = {id: owner, email: 'member@example.invalid'}, allowed =
     runInNewContext(source, {exports: exported, require: load, URL, Response, Request, TextDecoder, Uint8Array, crypto: webcrypto, Date});
     return exported;
   }
-  const routes = Object.fromEntries(['me', 'intake', 'admin', 'material', 'content'].map(route => [route, load(`app/api/store/${route}/route`)]));
+  const routes = Object.fromEntries(['me', 'intake', 'admin', 'admin/intake', 'material', 'content'].map(route => [route, load(`app/api/store/${route}/route`)]));
   function seedOrder({id = orderId, userId = owner, status = 'approved', items = [{id: 'rutina-90', title: 'Activa tu fuerza', quantity: 1, unit_price: 1490}], delivery = 'digital', state = 'received', version = 0} = {}) {
     db.prepare('INSERT INTO orders (id,user_id,items,amount_cents,delivery,customer_name,status,created_at,fulfillment_status,version) VALUES (?,?,?,?,?,?,?,?,?,?)').run(id, userId, JSON.stringify(items), 149000, delivery, 'Compradora', status, '2026-10-08T12:00:00Z', state, version);
   }
@@ -279,4 +279,121 @@ test('migration keeps roles separate, bucket private, and denies file overwrite 
   assert.match(repair, /alter policy carlyfit_plans_insert_guard/);
   assert.doesNotMatch(repair, /grant execute on function (?:public|carlyfit_private)\.can_manage_store\(\).*to anon/);
   assert.doesNotMatch(repair, /drop policy|insert into|update storage|delete from/i);
+});
+
+const receipt = {orderId, expectedVersion: 0, status: 'received'};
+
+test('only a store administrator can confirm or undo clinical intake receipt', async () => {
+  for (const [options, expectedStatus] of [
+    [{user: null}, 401],
+    [{user: {id: owner, is_anonymous: true}, allowed: true}, 403],
+    [{user: {id: owner, user_metadata: {canManageStore: true}}}, 403],
+    [{permissionError: {message: 'private authorization error'}}, 503],
+    [{configured: false}, 503],
+  ]) {
+    const h = harness(options); h.seedOrder();
+    for (const status of ['received', 'pending']) assert.equal((await h.post('admin/intake', {...receipt, status})).status, expectedStatus);
+    assert.ok(h.calls.every(call => call.rpc === 'can_manage_store'));
+    assert.equal(h.db.prepare('SELECT intake_received_at FROM orders').get().intake_received_at, null);
+    assert.equal(h.db.prepare('SELECT count(*) AS n FROM store_audit').get().n, 0);
+  }
+});
+
+test('clinical intake receipt requires same-origin bounded input and rejects answer or actor fields', async () => {
+  const h = harness({allowed: true}); h.seedOrder();
+  for (const origin of [null, 'https://evil.example']) assert.equal((await h.post('admin/intake', receipt, origin)).status, 403);
+  assert.equal(h.calls.length, 0);
+  for (const patch of [
+    {status: 'submitted'}, {status: ['received']}, {status: true}, {expectedVersion: -1}, {expectedVersion: 0.5},
+    {expectedVersion: '0'}, {expectedVersion: 2147483647}, {orderId: "' OR 1=1"}, {orderId: null},
+    {answers: 'Private health answers'}, {intake_received_by: owner}, {intakeReceivedAt: 'now'}, {user_id: owner},
+  ]) assert.equal((await h.post('admin/intake', {...receipt, ...patch})).status, 400);
+  assert.equal((await h.post('admin/intake', {...receipt, answers: 'x'.repeat(9000)})).status, 413);
+  assert.equal(h.db.prepare('SELECT count(*) AS n FROM store_audit').get().n, 0);
+  assert.equal(h.db.prepare('SELECT version FROM orders').get().version, 0);
+});
+
+test('clinical intake receipt requires an approved, linked, canonical plan order', async () => {
+  for (const order of [
+    {status: 'pending'}, {status: 'rejected'}, {status: 'refunded'}, {status: 'charged_back'}, {userId: null},
+    {items: [{id: 'mermelada', kind: 'plan'}]}, {items: [{id: 'not-a-plan', title: 'Plan personalizado'}]},
+  ]) {
+    const h = harness({allowed: true}); h.seedOrder(order);
+    assert.equal((await h.post('admin/intake', receipt)).status, 409);
+    assert.equal(h.db.prepare('SELECT count(*) AS n FROM store_audit').get().n, 0);
+  }
+  const missing = harness({allowed: true});
+  assert.equal((await missing.post('admin/intake', receipt)).status, 404);
+});
+
+test('Carly can confirm and correct receipt, with audit history and no clinical answers or exposed actor', async () => {
+  const h = harness({allowed: true, user: {id: stranger}}); h.seedOrder();
+  const response = await h.post('admin/intake', receipt);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+  const {order} = await response.json();
+  assert.deepEqual(Object.keys(order).sort(), ['id', 'intakeReceivedAt', 'version']);
+  assert.equal(order.id, orderId); assert.equal(order.version, 1); assert.ok(Number.isFinite(Date.parse(order.intakeReceivedAt)));
+  const stored = h.db.prepare('SELECT intake_received_at,intake_received_by,version FROM orders').get();
+  assert.equal(stored.intake_received_at, order.intakeReceivedAt); assert.equal(stored.intake_received_by, stranger); assert.equal(stored.version, 1);
+  const adminOrder = (await (await h.get('admin')).json()).orders[0];
+  assert.equal(adminOrder.intakeReceivedAt, order.intakeReceivedAt);
+  assert.ok(!('intake_received_by' in adminOrder)); assert.ok(!('intakeReceivedBy' in adminOrder));
+  const audit = h.db.prepare('SELECT * FROM store_audit').get();
+  assert.equal(audit.actor_id, stranger); assert.equal(audit.action, 'plan_intake_receipt');
+  assert.deepEqual(JSON.parse(audit.details), {from: 'pending', to: 'received', version: 1});
+  assert.equal((await h.post('admin/intake', receipt)).status, 409, 'Stale confirmation must not create another audit record');
+  const reset = await h.post('admin/intake', {...receipt, status: 'pending', expectedVersion: 1});
+  assert.equal(reset.status, 200); assert.equal((await reset.json()).order.intakeReceivedAt, null);
+  const reverted = h.db.prepare('SELECT intake_received_at,intake_received_by,version FROM orders').get();
+  assert.equal(reverted.intake_received_at, null); assert.equal(reverted.intake_received_by, null); assert.equal(reverted.version, 2);
+  const audits = h.db.prepare('SELECT details FROM store_audit ORDER BY rowid').all().map(row => JSON.parse(row.details));
+  assert.deepEqual(audits, [{from: 'pending', to: 'received', version: 1}, {from: 'received', to: 'pending', version: 2}]);
+});
+
+test('member order presentation includes only receipt timestamp and never the confirming actor', async () => {
+  const h = harness(); h.seedOrder();
+  const timestamp = '2026-10-09T15:00:00.000Z';
+  h.db.prepare('UPDATE orders SET intake_received_at=?,intake_received_by=?').run(timestamp, stranger);
+  const data = await (await h.get('me')).json();
+  assert.equal(data.orders[0].intakeReceivedAt, timestamp);
+  assert.ok(!('intake_received_by' in data.orders[0])); assert.ok(!('intakeReceivedBy' in data.orders[0]));
+  assert.doesNotMatch(JSON.stringify(data), new RegExp(stranger));
+});
+
+test('purchase email is shown only to store admins for plan orders, independent of current account email', async () => {
+  const h = harness({allowed: true}); h.seedOrder(); h.seedOrder({id: otherOrderId, items: [{id: 'mermelada'}]});
+  h.db.prepare('UPDATE orders SET plan_contact_email=?').run('purchase@example.invalid');
+  h.db.prepare('INSERT INTO member_directory (user_id,email,display_name,updated_at) VALUES (?,?,?,?)').run(owner, 'current@example.invalid', 'Cliente', 'now');
+  const adminOrders = (await (await h.get('admin')).json()).orders;
+  assert.equal(adminOrders.find(order => order.id === orderId).purchaseEmail, 'purchase@example.invalid');
+  assert.equal(adminOrders.find(order => order.id === orderId).email, 'current@example.invalid');
+  assert.equal(adminOrders.find(order => order.id === otherOrderId).purchaseEmail, null);
+  const memberOrders = (await (await h.get('me')).json()).orders;
+  assert.ok(memberOrders.every(order => !('purchaseEmail' in order) && !('plan_contact_email' in order)));
+  assert.doesNotMatch(JSON.stringify(memberOrders), /purchase@example\.invalid/);
+});
+
+test('concurrent refund, owner, items or version changes prevent receipt and its audit insert', async () => {
+  for (const change of [
+    db => db.exec("UPDATE orders SET status='refunded'"),
+    db => db.prepare('UPDATE orders SET user_id=?').run(stranger),
+    db => db.exec("UPDATE orders SET items='[{\"id\":\"mermelada\"}]'"),
+    db => db.exec('UPDATE orders SET version=version+1'),
+  ]) {
+    const h = harness({allowed: true, beforeBatch: change}); h.seedOrder();
+    assert.equal((await h.post('admin/intake', receipt)).status, 409);
+    assert.equal(h.db.prepare('SELECT intake_received_at FROM orders').get().intake_received_at, null);
+    assert.equal(h.db.prepare('SELECT count(*) AS n FROM store_audit').get().n, 0);
+  }
+});
+
+test('receipt mutation rolls back if the audit write fails', async () => {
+  const h = harness({allowed: true, beforeBatch: db => db.exec("CREATE TRIGGER reject_receipt_audit BEFORE INSERT ON store_audit BEGIN SELECT RAISE(ABORT, 'audit unavailable'); END")});
+  h.seedOrder();
+  const response = await h.post('admin/intake', receipt);
+  assert.equal(response.status, 503); assert.doesNotMatch(await response.text(), /audit unavailable/);
+  const order = h.db.prepare('SELECT intake_received_at,intake_received_by,version FROM orders').get();
+  assert.equal(order.intake_received_at, null); assert.equal(order.intake_received_by, null); assert.equal(order.version, 0);
+  assert.equal(h.db.prepare('SELECT count(*) AS n FROM store_audit').get().n, 0);
 });
