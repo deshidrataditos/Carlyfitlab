@@ -282,3 +282,9 @@ Validación: **146 pruebas aprobadas**, TypeScript, ESLint de los cambios y comp
 La tarjeta «Hola, soy Carly» deja de flotar sobre la fotografía. La imagen y su descripción ahora forman una figura con el nombre y la ubicación debajo, dentro del flujo normal; se retira la flecha decorativa. El pie «Disciplina que se disfruta» queda visible en la foto. El nombre tiene interlineado propio y la ubicación puede ajustarse al ancho sin recortes.
 
 Verificación de diseño a 320, 390, 768, 1024 y 1440 px: foto y tarjeta tienen el mismo ancho, sin superposición ni desplazamiento horizontal, y el nombre permanece en una línea. TypeScript y compilación de producción correctos. Cambio únicamente visual; no se repitieron pruebas de pagos ni se modificaron pedidos. Publicado y comprobado en carlyfitlab.com: `fb570281-049c-4565-b611-d3d2dbad0995`.
+
+## Enlaces del asistente — 9 de octubre de 2026
+
+Se reprodujo que «Ver planes» y «Ver productos» cerraban el asistente sin cambiar de sección. Ahora utilizan enlaces nativos: al activarlos se cierra el diálogo antes de mover el foco y desplazar la página al destino. Se conservan el historial, los parámetros de la URL y los clics modificados. Volver a pulsar el enlace funciona aunque la sección ya figure en la URL. Cerrar con la X o Escape sigue devolviendo el foco al botón del asistente.
+
+Validación: navegación de ambos enlaces en escritorio y a 390 px, activación con Enter, enlace repetido y cierre con X/Escape; TypeScript, ESLint del archivo y compilación correctos. Se comprobó el destino y el cierre del diálogo también en producción. No se enviaron consultas de IA ni se realizaron compras. Versión publicada: `733c2906-e3c7-4788-a76f-8230abc4e4b5`.

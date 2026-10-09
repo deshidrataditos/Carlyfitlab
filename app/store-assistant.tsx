@@ -1,7 +1,6 @@
 'use client';
 
-import {useEffect, useRef, useState, type FormEvent} from 'react';
-import Link from 'next/link';
+import {useEffect, useRef, useState, type FormEvent, type MouseEvent} from 'react';
 import {ArrowUpRight, Bot, LoaderCircle, LockKeyhole, MessageCircle, RefreshCw, Send, X} from 'lucide-react';
 import {Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import {whatsapp} from '@/lib/catalog';
@@ -11,6 +10,7 @@ type Quota = {limit:number; remaining:number; resetsAt:string};
 type Availability = {enabled:false} | ({enabled:true} & Quota);
 type Exchange = {question:string; reply:string};
 type Failure = {message:string; status:number};
+type StoreSection = 'planes' | 'tienda';
 const quickQuestions = ['¿Qué incluyen los tres planes?', '¿Qué postres puedo elegir por menos de $150?', '¿Cómo funcionan los pedidos y envíos?'];
 const contact = whatsapp('Hola, Carly. Tengo una consulta sobre los planes o productos de Carlyfit Lab.');
 
@@ -44,7 +44,7 @@ function waitLabel(seconds:number):string {
   return `${seconds} s`;
 }
 
-function AssistantPanel({userId, onSignIn, onClose}:{userId:string|null; onSignIn:()=>void; onClose:()=>void}) {
+function AssistantPanel({userId, onSignIn, onClose, onNavigate}:{userId:string|null; onSignIn:()=>void; onClose:()=>void; onNavigate:(event:MouseEvent<HTMLAnchorElement>, section:StoreSection)=>void}) {
   const [availability, setAvailability] = useState<Availability|null>(null);
   const [loading, setLoading] = useState(!!userId);
   const [sending, setSending] = useState(false);
@@ -170,7 +170,7 @@ function AssistantPanel({userId, onSignIn, onClose}:{userId:string|null; onSignI
     </>}
 
     <footer className="assistant-footer">
-      <nav aria-label="Enlaces de ayuda"><Link href="/#planes" prefetch={false} onClick={onClose}>Ver planes</Link><Link href="/#tienda" prefetch={false} onClick={onClose}>Ver productos</Link><a href={contact} target="_blank" rel="noopener noreferrer"><MessageCircle size={14}/> Hablar con Carly</a></nav>
+      <nav aria-label="Enlaces de ayuda"><a href="#planes" onClick={event => onNavigate(event, 'planes')}>Ver planes</a><a href="#tienda" onClick={event => onNavigate(event, 'tienda')}>Ver productos</a><a href={contact} target="_blank" rel="noopener noreferrer"><MessageCircle size={14}/> Hablar con Carly</a></nav>
       <p>La IA puede equivocarse. Confirma con Carly las dudas de ingredientes y la atención personalizada. Tu pregunta se envía a Cloudflare para responder. <a href="/privacidad" target="_blank" rel="noopener noreferrer">Privacidad</a></p>
     </footer>
   </>;
@@ -179,10 +179,41 @@ function AssistantPanel({userId, onSignIn, onClose}:{userId:string|null; onSignI
 export default function StoreAssistant({userId, onSignIn}:{userId:string|null; onSignIn:()=>void}) {
   const [open, setOpen] = useState(false);
   const openingSignIn = useRef(false);
-  return <Dialog open={open} onOpenChange={next => {if (next) openingSignIn.current = false; setOpen(next);}}>
+  const pendingSection = useRef<StoreSection|null>(null);
+
+  function navigateToSection(event:MouseEvent<HTMLAnchorElement>, section:StoreSection) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    pendingSection.current = section;
+    setOpen(false);
+  }
+
+  return <Dialog open={open} onOpenChange={next => {if (next) {openingSignIn.current = false; pendingSection.current = null;} setOpen(next);}}>
     <DialogTrigger asChild><button type="button" className="assistant-launch" aria-label="Abrir asistente de Carlyfit Lab"><Bot size={22} aria-hidden="true"/><span>¿Te ayudo?<small>Asistente IA</small></span></button></DialogTrigger>
-    <DialogContent className="assistant-dialog translate-x-0 translate-y-0" showCloseButton={false} onCloseAutoFocus={event => {if (openingSignIn.current) event.preventDefault();}}>
-      {open && <AssistantPanel key={userId ?? 'guest'} userId={userId} onClose={() => setOpen(false)} onSignIn={() => {openingSignIn.current = true; setOpen(false); onSignIn();}}/>}
+    <DialogContent className="assistant-dialog translate-x-0 translate-y-0" showCloseButton={false} onCloseAutoFocus={event => {
+      if (openingSignIn.current) event.preventDefault();
+      const sectionId = pendingSection.current;
+      if (!sectionId) return;
+      event.preventDefault();
+      pendingSection.current = null;
+      // Navigate after closing, instead of restoring focus to the launcher.
+      requestAnimationFrame(() => {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        const hash = `#${sectionId}`;
+        if (window.location.hash !== hash) window.history.pushState(window.history.state, '', hash);
+        const previousTabIndex = section.getAttribute('tabindex');
+        section.setAttribute('tabindex', '-1');
+        section.focus({preventScroll:true});
+        section.addEventListener('blur', () => {
+          if (previousTabIndex === null) section.removeAttribute('tabindex');
+          else section.setAttribute('tabindex', previousTabIndex);
+        }, {once:true});
+        // Always scroll, including when this section is already in the URL.
+        section.scrollIntoView({block:'start'});
+      });
+    }}>
+      {open && <AssistantPanel key={userId ?? 'guest'} userId={userId} onClose={() => setOpen(false)} onNavigate={navigateToSection} onSignIn={() => {openingSignIn.current = true; setOpen(false); onSignIn();}}/>}
     </DialogContent>
   </Dialog>;
 }
