@@ -5,18 +5,35 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {catalog,validateCart} from '../lib/catalog.ts';
 
+const desserts={};
+runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/dessert-pack.ts',import.meta.url),'utf8'),{
+ compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+}).outputText,{exports:desserts,Error,require:name=>{assert.equal(name,'./catalog');return {catalog};}});
+
 // Exercise the real Worker route with isolated DB and payment API boundaries.
 const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.ts',import.meta.url),'utf8'),{
  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
 }).outputText;
 const checkoutUrl='https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=test-preference';
 
-function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}],delivery='pickup'}={}){
- const writes=[];const calls=[];const exported={};
+function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}],delivery='pickup',dessertSelection,extraBody={},sessionEnabled=false,user=null,authError=null,profileError=null}={}){
+ const writes=[];const calls=[];const exported={};const sessionCalls=[];
  const config=enabled?{origin:'https://shop.example',live}:null;
+ const session=sessionEnabled?{
+  client:{
+   auth:{getUser:async()=>{sessionCalls.push({operation:'getUser'});return {data:{user},error:authError};}},
+   from:table=>({select:columns=>({eq:(column,value)=>({maybeSingle:async()=>{
+    sessionCalls.push({operation:'profile',table,columns,column,value});
+    return {data:{display_name:'Verified member'},error:profileError};
+   }})})}),
+  },
+  finish:response=>{response.headers.set('X-Test-Session-Finished','true');return response;},
+ }:null;
  const dependencies={
   'cloudflare:workers':{env:{DB:{prepare:sql=>({bind:(...args)=>({run:async()=>{writes.push({sql,args});}})})}}},
   '@/lib/catalog':{catalog,validateCart},
+  '@/lib/dessert-pack':desserts,
+  '@/lib/supabase-server':{memberSession:()=>session},
   '@/lib/payment':{paymentConfig:()=>config,sellerEnvironmentMatches:async()=>sellerMatches,mpRequest:async(...args)=>{
    calls.push(args);
    return {id:'test-preference',init_point:initPoint,sandbox_init_point:'https://sandbox.mercadopago.com.mx/checkout/legacy-test'};
@@ -24,13 +41,13 @@ function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMa
  };
  runInNewContext(route,{
   exports:exported,require:name=>{assert.ok(name in dependencies);return dependencies[name];},
-  URL,Response,TextDecoder,Uint8Array,crypto,console:{error:()=>{}},
+  URL,Response,TextDecoder,Uint8Array,crypto,Error,console:{error:()=>{}},
  });
  const request=new Request('https://shop.example/api/checkout',{
   method:'POST',headers:{Origin:'https://shop.example','Content-Type':'application/json'},
-  body:JSON.stringify({items,delivery,customer:'Test buyer'}),
+  body:JSON.stringify({items,delivery,customer:'Test buyer',dessertSelection,...extraBody}),
  });
- return {run:()=>exported.POST(request),writes,calls};
+ return {run:()=>exported.POST(request),writes,calls,sessionCalls,orderWrite:()=>writes.find(write=>write.sql.startsWith('INSERT INTO orders'))};
 }
 
 for(const live of [false,true])test(`checkout uses init_point for ${live?'live':'test seller'} mode`,async()=>{
@@ -90,16 +107,93 @@ test('cake sizes remain distinct in the payment and stored order, with server pr
  assert.deepEqual(JSON.parse(fixture.writes[0].args[1]),JSON.parse(JSON.stringify(sent)));
 });
 
-test('the monthly in-person plan creates a one-month payment at the server price',async()=>{
+test('the retired monthly in-person plan is rejected before creating a payment or writing an order',async()=>{
  const fixture=checkoutHarness({items:[{id:'presencial-mensual',quantity:1,price:1}],delivery:'digital'});
+ const response=await fixture.run();
+ assert.equal(response.status,409);
+ assert.match((await response.json()).error,/directamente con Carly/);
+ assert.equal(fixture.calls.length,0);
+ assert.equal(fixture.writes.length,0);
+});
+
+test('a complete five-piece pack persists its selection without charging for its included products',async()=>{
+ const selection=[{id:'galletas',quantity:4,price:0},{id:'pastel-zanahoria',quantity:1}];
+ const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:1,price:1}],dessertSelection:selection});
  assert.equal((await fixture.run()).status,200);
- assert.equal(fixture.calls.length,1);
- assert.equal(fixture.calls[0][1],'/checkout/preferences');
- const item=fixture.calls[0][2].items[0];
- assert.equal(item.id,'presencial-mensual');
- assert.equal(item.unit_price,2200);
- assert.equal(item.quantity,1);
- assert.match(item.title,/Entrena con Carly.*1 mes.*presencial/);
- assert.equal(fixture.writes[0].args[2],220000);
- assert.deepEqual(JSON.parse(fixture.writes[0].args[1]),JSON.parse(JSON.stringify([item])));
+ const order=fixture.orderWrite();
+ assert.equal(order.args[2],299000);
+ assert.deepEqual(JSON.parse(order.args[9]),selection.map(({id,quantity})=>({id,quantity})));
+ assert.equal(fixture.calls[0][2].items.length,1);
+ assert.equal(fixture.calls[0][2].items[0].id,'dulce-90');
+ assert.equal(fixture.calls[0][2].items[0].unit_price,2990);
+ assert.deepEqual(JSON.parse(order.args[1]),JSON.parse(JSON.stringify(fixture.calls[0][2].items)));
+});
+
+test('two dessert plans require ten included pieces while paid products remain separately priced',async()=>{
+ const selection=[{id:'galletas',quantity:8},{id:'pastel-zanahoria',quantity:1},{id:'cheesecake-carlyfit',quantity:1}];
+ const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:2},{id:'galletas',quantity:1}],dessertSelection:selection});
+ assert.equal((await fixture.run()).status,200);
+ assert.equal(fixture.orderWrite().args[2],603900);
+ assert.deepEqual(JSON.parse(fixture.orderWrite().args[9]),selection);
+ assert.deepEqual(Array.from(fixture.calls[0][2].items,item=>({id:item.id,quantity:item.quantity})),[{id:'dulce-90',quantity:2},{id:'galletas',quantity:1}]);
+});
+
+test('incomplete packs, extra pieces, combined cakes, excluded products and duplicate IDs fail before side effects',async()=>{
+ const invalidSelections=[
+  undefined,[],[{id:'galletas',quantity:4}],[{id:'galletas',quantity:6}],
+  [{id:'galletas',quantity:3},{id:'pastel-zanahoria',quantity:1},{id:'cheesecake-carlyfit',quantity:1}],
+  [{id:'galletas',quantity:4},{id:'pastel-zanahoria-grande',quantity:1}],
+  [{id:'galletas',quantity:4},{id:'cheesecake-carlyfit-grande',quantity:1}],
+  [{id:'galletas',quantity:4},{id:'inventado',quantity:1}],
+  [{id:'galletas',quantity:2},{id:'galletas',quantity:3}],
+ ];
+ for(const dessertSelection of invalidSelections){
+  const fixture=checkoutHarness({items:[{id:'dulce-90',quantity:1}],dessertSelection});
+  const response=await fixture.run();
+  assert.equal(response.status,400,JSON.stringify(dessertSelection));
+  assert.equal(fixture.writes.length,0);
+  assert.equal(fixture.calls.length,0);
+ }
+ const noPlan=checkoutHarness({dessertSelection:[{id:'galletas',quantity:5}]});
+ assert.equal((await noPlan.run()).status,400);
+ assert.equal(noPlan.writes.length,0);
+ assert.equal(noPlan.calls.length,0);
+});
+
+test('a guest cannot attach an order to a client-supplied account ID',async()=>{
+ for(const sessionEnabled of [false,true]){
+  const fixture=checkoutHarness({sessionEnabled,authError:sessionEnabled?{name:'AuthSessionMissingError'}:null,extraBody:{userId:'spoofed-user',user_id:'spoofed-user',email:'spoofed@example.test'}});
+  assert.equal((await fixture.run()).status,200);
+  assert.equal(fixture.orderWrite().args[8],null);
+  assert.deepEqual(JSON.parse(fixture.orderWrite().args[9]),[]);
+  assert.equal(fixture.writes.some(write=>write.sql.includes('member_directory')),false);
+ }
+});
+
+test('an authenticated order uses only the verified session identity and refreshes its member directory entry',async()=>{
+ const user={id:'verified-user',email:'member@example.test',is_anonymous:false};
+ const fixture=checkoutHarness({sessionEnabled:true,user,extraBody:{userId:'spoofed-user',user_id:'spoofed-user',email:'spoofed@example.test'}});
+ const response=await fixture.run();
+ assert.equal(response.status,200);
+ assert.equal(response.headers.get('X-Test-Session-Finished'),'true');
+ assert.equal(fixture.orderWrite().args[8],'verified-user');
+ const directory=fixture.writes.find(write=>write.sql.includes('member_directory'));
+ assert.deepEqual(directory.args.slice(0,3),['verified-user','member@example.test','Verified member']);
+ assert.deepEqual(fixture.sessionCalls,[{operation:'getUser'},{operation:'profile',table:'profiles',columns:'display_name',column:'id',value:'verified-user'}]);
+});
+
+test('anonymous sessions remain guest orders and unavailable verification cannot create an order',async()=>{
+ const anonymous=checkoutHarness({sessionEnabled:true,user:{id:'anonymous-user',is_anonymous:true}});
+ assert.equal((await anonymous.run()).status,200);
+ assert.equal(anonymous.orderWrite().args[8],null);
+ assert.equal(anonymous.sessionCalls.length,1);
+ for(const session of [
+  {authError:{name:'AuthRetryableFetchError',status:503}},
+  {user:{id:'verified-user',is_anonymous:false},profileError:{message:'Temporary profile outage'}},
+ ]){
+  const fixture=checkoutHarness({sessionEnabled:true,...session});
+  assert.equal((await fixture.run()).status,400);
+  assert.equal(fixture.writes.length,0);
+  assert.equal(fixture.calls.length,0);
+ }
 });

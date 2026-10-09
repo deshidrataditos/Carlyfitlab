@@ -3,17 +3,29 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
-import {validateCart} from '../lib/catalog.ts';
+import {catalog,validateCart} from '../lib/catalog.ts';
 
-const exported={};
-runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/cart-state.ts',import.meta.url),'utf8'),{
- compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
-}).outputText,{exports:exported,require:name=>{assert.equal(name,'./catalog');return {validateCart};}});
-const {emptyCartState,parseCartState,cartWithItems,trackCheckout,linkCheckout,discardCheckout,settleCheckout}=exported;
+function loadModule(path,dependencies){
+ const exported={};
+ runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+ }).outputText,{exports:exported,Error,require:name=>{assert.ok(name in dependencies,`Unexpected dependency: ${name}`);return dependencies[name];}});
+ return exported;
+}
+const desserts=loadModule('../lib/dessert-pack.ts',{'./catalog':{catalog}});
+const {emptyCartState,parseCartState,cartWithItems,cartWithDesserts,trackCheckout,linkCheckout,discardCheckout,settleCheckout}=loadModule('../lib/cart-state.ts',{
+ './catalog':{catalog,validateCart},'./dessert-pack':desserts,
+});
 const cookie=quantity=>({id:'galletas',quantity});
 const core=quantity=>({id:'core-cookie',quantity});
+const dulce=quantity=>({id:'dulce-90',quantity});
+const carrot=quantity=>({id:'pastel-zanahoria',quantity});
 const plain=value=>JSON.parse(JSON.stringify(value));
 function checkout(items=[cookie(1)]){return linkCheckout(trackCheckout(cartWithItems(emptyCartState(),items),'attempt'),'attempt','order');}
+function dessertCheckout(selection=[cookie(4),carrot(1)],quantity=1){
+ const state=cartWithDesserts(cartWithItems(emptyCartState(),[dulce(quantity)]),selection);
+ return linkCheckout(trackCheckout(state,'attempt'),'attempt','order');
+}
 
 test('a confirmed checkout removes its items, and reloading an old order preserves a new cart',()=>{
  const paid=settleCheckout(checkout(),'order','approved');
@@ -63,4 +75,85 @@ test('legacy carts migrate without inventing a payment association; invalid data
  assert.deepEqual(plain(legacy.items),[cookie(1)]);
  assert.equal(settleCheckout(legacy,'old-approved-order','approved'),legacy);
  for(const saved of ['bad-json','{}',JSON.stringify({version:1,items:[cookie(-1)],checkouts:[]})])assert.deepEqual(plain(parseCartState(saved,null).items),[]);
+});
+
+test('five chosen dessert pieces are copied into a checkout and survive a storage round trip',()=>{
+ const choices=[cookie(4),carrot(1)];
+ const state=dessertCheckout(choices);
+ choices[0].quantity=1;
+ assert.deepEqual(plain(state.checkouts[0].dessertSelection),[cookie(4),carrot(1)]);
+ assert.deepEqual(plain(state.dessertSelection),[cookie(4),carrot(1)]);
+ assert.notEqual(state.checkouts[0].dessertSelection,state.dessertSelection);
+ assert.notEqual(state.checkouts[0].dessertSelection[0],state.dessertSelection[0]);
+ const restored=parseCartState(JSON.stringify(state),null);
+ assert.deepEqual(plain(restored),plain(state));
+ assert.deepEqual(plain(desserts.validateDessertSelection(restored.checkouts[0].dessertSelection,1)),[cookie(4),carrot(1)]);
+});
+
+test('editing dessert quantities after checkout leaves the purchased snapshot intact',()=>{
+ let state=cartWithItems(dessertCheckout(),[dulce(2)]);
+ state=cartWithDesserts(state,[cookie(4),carrot(1),core(5)]);
+ assert.deepEqual(plain(state.checkouts[0].dessertSelection),[cookie(4),carrot(1)]);
+ const paid=settleCheckout(state,'order','approved');
+ assert.deepEqual(plain(paid.items),[dulce(1)]);
+ assert.deepEqual(plain(paid.dessertSelection),[core(5)]);
+ assert.deepEqual(plain(paid.checkouts),[]);
+ assert.deepEqual(plain(parseCartState(JSON.stringify(paid),null).dessertSelection),[core(5)]);
+});
+
+test('a confirmed dessert plan clears its chosen pieces and cannot consume a later selection twice',()=>{
+ const paid=settleCheckout(dessertCheckout(),'order','approved');
+ assert.deepEqual(plain(paid.items),[]);
+ assert.deepEqual(plain(paid.dessertSelection),[]);
+ const fresh=cartWithDesserts(cartWithItems(paid,[dulce(1)]),[cookie(5)]);
+ assert.equal(settleCheckout(fresh,'order','approved'),fresh);
+ assert.deepEqual(plain(fresh.dessertSelection),[cookie(5)]);
+});
+
+test('removing and re-adding a dessert plan preserves new choices on an older payment return',()=>{
+ const removed=cartWithItems(dessertCheckout(),[]);
+ const readded=cartWithDesserts(cartWithItems(removed,[dulce(1)]),[cookie(4),carrot(1)]);
+ const result=settleCheckout(readded,'order','approved');
+ assert.deepEqual(plain(result.items),[dulce(1)]);
+ assert.deepEqual(plain(result.dessertSelection),[cookie(4),carrot(1)]);
+});
+
+test('two payment returns cannot remove a fresh dessert selection after the original plan was paid',()=>{
+ let state=linkCheckout(trackCheckout(dessertCheckout(),'attempt-2'),'attempt-2','order-2');
+ state=settleCheckout(state,'order','approved');
+ state=cartWithDesserts(cartWithItems(state,[dulce(1)]),[cookie(4),carrot(1)]);
+ const result=settleCheckout(state,'order-2','approved');
+ assert.deepEqual(plain(result.items),[dulce(1)]);
+ assert.deepEqual(plain(result.dessertSelection),[cookie(4),carrot(1)]);
+});
+
+test('reducing the number of plans trims choices to the new limits and increasing does not auto-fill',()=>{
+ let state=cartWithDesserts(cartWithItems(emptyCartState(),[dulce(2)]),[carrot(2),cookie(8)]);
+ state=cartWithItems(state,[dulce(1)]);
+ assert.deepEqual(plain(state.dessertSelection),[carrot(1),cookie(4)]);
+ state=cartWithItems(state,[dulce(2)]);
+ assert.deepEqual(plain(state.dessertSelection),[carrot(1),cookie(4)]);
+ assert.throws(()=>desserts.validateDessertSelection(state.dessertSelection,2),/exactamente 10/);
+});
+
+test('legacy carts and receipts without dessert choices load without inventing selections',()=>{
+ const saved=JSON.stringify({version:1,items:[dulce(1)],checkouts:[{id:'old-order',items:[dulce(1)]}]});
+ const modern=parseCartState(saved,null);
+ assert.deepEqual(plain(modern.items),[dulce(1)]);
+ assert.deepEqual(plain(modern.dessertSelection),[]);
+ assert.deepEqual(plain(modern.checkouts[0].dessertSelection),[]);
+ const legacy=parseCartState(null,JSON.stringify([dulce(1)]));
+ assert.deepEqual(plain(legacy.items),[dulce(1)]);
+ assert.deepEqual(plain(legacy.dessertSelection),[]);
+});
+
+test('retired monthly plans leave current carts while their old receipts remain readable',()=>{
+ const monthly={id:'presencial-mensual',quantity:1};
+ const saved=JSON.stringify({version:1,items:[monthly,cookie(2)],checkouts:[{id:'old-monthly',items:[monthly,cookie(1)]}]});
+ const restored=parseCartState(saved,null);
+ assert.deepEqual(plain(restored.items),[cookie(2)]);
+ assert.deepEqual(plain(restored.checkouts[0].items),[monthly,cookie(1)]);
+ assert.deepEqual(plain(settleCheckout(restored,'old-monthly','approved').items),[cookie(1)]);
+ assert.deepEqual(plain(parseCartState(null,JSON.stringify([monthly,cookie(1)])).items),[cookie(1)]);
+ assert.deepEqual(plain(cartWithItems(emptyCartState(),[monthly,cookie(1)]).items),[cookie(1)]);
 });

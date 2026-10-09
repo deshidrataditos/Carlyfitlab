@@ -7,6 +7,7 @@ import {Checkbox} from '@/components/ui/checkbox';
 import {RadioGroup, RadioGroupItem} from '@/components/ui/radio-group';
 import {whatsapp} from '@/lib/catalog';
 import TestimonialModeration from './testimonial-moderation';
+import MemberStore from './member-store';
 
 type Mode = 'register' | 'login';
 type Testimonial = {id:string; body:string; rating:number; created_at:string};
@@ -51,11 +52,12 @@ function Rating({value}:{value:number}) {
   </div>;
 }
 
-export default function MemberCommunity({open, onOpenChange, mode, onModeChange}:{
+export default function MemberCommunity({open, onOpenChange, mode, onModeChange, onUserChange}:{
   open:boolean;
   onOpenChange:(value:boolean)=>void;
   mode:Mode;
   onModeChange:(value:Mode)=>void;
+  onUserChange?:(user:Account['user'])=>void;
 }) {
   const [account, setAccount] = useState<Account>(emptyAccount);
   const [loading, setLoading] = useState(true);
@@ -73,24 +75,28 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
   const [publicError, setPublicError] = useState('');
   const [moderationOpen, setModerationOpen] = useState(false);
   const accountRequest = useRef(0);
+  const accountController = useRef<AbortController|null>(null);
   const publicRequest = useRef(0);
 
   const loadAccount = useCallback(async (silent = false) => {
     const sequence = ++accountRequest.current;
+    accountController.current?.abort();
+    const controller = new AbortController();
+    accountController.current = controller;
     if (!silent) setLoading(true);
     setAccountError('');
     try {
-      const data = await request<Account>('/api/account');
-      if (sequence !== accountRequest.current) return;
+      const data = await request<Account>('/api/account', {signal:controller.signal});
+      if (controller.signal.aborted || sequence !== accountRequest.current) return;
       setAccount(data);
       setDisplayName(data.profile?.display_name || '');
       setMarketingOptIn(data.profile?.marketing_opt_in === true);
     } catch (error) {
-      if (sequence !== accountRequest.current) return;
+      if (controller.signal.aborted || sequence !== accountRequest.current) return;
       setAccount(emptyAccount);
       setAccountError(error instanceof Error ? error.message : 'No pudimos abrir tu cuenta. Inténtalo de nuevo.');
     } finally {
-      if (sequence === accountRequest.current) setLoading(false);
+      if (!controller.signal.aborted && sequence === accountRequest.current) setLoading(false);
     }
   }, []);
 
@@ -125,7 +131,8 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
     void loadTestimonials();
     return () => {publicRequest.current += 1;};
   }, [loadTestimonials]);
-  useEffect(() => {void loadAccount();}, [loadAccount]);
+  useEffect(() => {void loadAccount(); return () => {accountRequest.current += 1; accountController.current?.abort();};}, [loadAccount]);
+  useEffect(() => {onUserChange?.(account.user);}, [account.user, onUserChange]);
   useEffect(() => {setModerationOpen(false);}, [open, account.user?.id, account.canModerateTestimonials]);
   useEffect(() => {
     if (open) {
@@ -137,12 +144,16 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
   useEffect(() => {
     const url = new URL(window.location.href);
     const authResult = url.searchParams.get('auth');
-    if (authResult !== 'error' && authResult !== 'success') return;
+    const accountRequested = url.searchParams.get('account') === '1';
+    if (authResult !== 'error' && authResult !== 'success' && !accountRequested) return;
     if (authResult === 'error') setOauthError('No se completó el acceso con Google. Puedes intentarlo otra vez.');
     onOpenChange(true);
     url.searchParams.delete('auth');
+    url.searchParams.delete('account');
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }, [onOpenChange]);
+
+  const refreshSession = useCallback(() => {void loadAccount();}, [loadAccount]);
 
   function showAccount(nextMode:Mode = 'register') {
     onModeChange(nextMode);
@@ -203,6 +214,8 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
 
   async function logout() {
     setAction('logout');
+    ++accountRequest.current;
+    accountController.current?.abort();
     setModerationOpen(false);
     setActionError('');
     setSuccess('');
@@ -287,6 +300,7 @@ export default function MemberCommunity({open, onOpenChange, mode, onModeChange}
 
         {!loading && account.user && <div className="member-content">
           <p className="member-email"><LockKeyhole size={15}/><span>{account.user.email}</span></p>
+          {open && action !== 'logout' && <MemberStore key={account.user.id} onSessionExpired={refreshSession}/>}
           {account.canModerateTestimonials && <section className="member-panel member-moderation" aria-labelledby="member-moderation-title">
             <h3 id="member-moderation-title">Administración</h3>
             <button type="button" className="button outline moderation-toggle" aria-expanded={moderationOpen} aria-controls="testimonial-moderation" disabled={action === 'logout'} onClick={() => setModerationOpen(current => !current)}><ShieldCheck size={19}/><span>Administrar comentarios</span><ChevronDown size={18} aria-hidden="true"/></button>

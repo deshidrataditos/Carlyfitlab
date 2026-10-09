@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <p className="eyebrow">TU INFORMACIÓN, CON CLARIDAD</p>
       <h1>Privacidad<br/><em>en Carlyfit Lab.</em></h1>
       <p className={styles.lead}>Aquí te contamos qué datos utiliza nuestra tienda, para qué los necesitamos y cómo puedes consultar o solicitar cambios.</p>
-      <p className={styles.updated}>Última actualización: 4 de octubre de 2026</p>
+      <p className={styles.updated}>Última actualización: 8 de octubre de 2026</p>
     </div>
 
     <div className={styles.content}>
@@ -43,21 +43,21 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>Pedidos, pagos y contacto</h2>
-        <p>Cuando inicias un pago, guardamos los productos o planes elegidos, cantidades, importe, modalidad de entrega, nombre del cliente si lo proporcionas y las referencias y el estado del pedido y del pago. Usamos esta información para gestionar tu compra y comprobar su resultado.</p>
+        <h2>Tu plan y la ficha inicial</h2><p>Cuando compras un plan con tu sesión iniciada y el pago está aprobado, puedes completar una ficha con tu objetivo, experiencia, lugar de entrenamiento, días, tiempo por sesión y equipo disponible. Carly utiliza estos datos para preparar tu rutina. No solicitamos diagnósticos ni historial médico en esta ficha.</p><p>Tu ficha y los documentos o videos que Carly te asigne se consultan desde tu cuenta y por las personas autorizadas para atenderte. Los archivos se guardan en almacenamiento privado y se abren mediante enlaces temporales. Evita compartir esos enlaces. Puedes solicitar cambios o eliminación contactando a Carly.</p></section><section><h2>Pedidos, pagos y contacto</h2>
+        <p>Cuando inicias un pago, guardamos los productos o planes elegidos, cantidades, importe, modalidad de entrega, nombre del cliente si lo proporcionas y las referencias y el estado del pedido y del pago. Usamos esta información para gestionar tu compra y comprobar su resultado. También guardamos las piezas que elijas para el paquete inicial y el estado de preparación o entrega. Si inicias sesión antes del pago, asociamos el pedido a tu identificador de cuenta para mostrarlo en «Mis pedidos» y permitirte recibir el material de tu plan. Las compras como invitado no se vinculan automáticamente por nombre o correo.</p>
         <p>Mercado Pago procesa el pago en su plataforma. Carlyfit Lab no recibe ni almacena el número completo de tu tarjeta ni su código de seguridad.</p>
         <p>Al abrir un enlace de WhatsApp se prepara un mensaje con los datos del pedido o la consulta correspondiente. Tú decides si lo envías. La información que compartas allí se utiliza para atenderte y coordinar tu pedido, entrega o plan.</p>
       </section>
 
       <section>
         <h2>Qué se guarda en tu navegador</h2>
-        <p>Utilizamos cookies de autenticación para mantener y proteger tu sesión. Puedes cerrarla desde tu espacio Carlyfit. El carrito y las referencias necesarias para actualizarlo al confirmar una compra se guardan en el almacenamiento local de este navegador.</p>
+        <p>Utilizamos cookies de autenticación para mantener y proteger tu sesión. Puedes cerrarla desde tu espacio Carlyfit. El carrito, la selección del paquete inicial y las referencias necesarias para actualizarlo al confirmar una compra se guardan en el almacenamiento local de este navegador.</p>
         <p>Puedes borrar estos datos desde las opciones de tu navegador. Al hacerlo puedes perder el carrito guardado y necesitar iniciar sesión de nuevo; borrar el navegador no elimina tu cuenta ni los pedidos registrados.</p>
       </section>
 
       <section>
         <h2>Servicios que hacen posible la tienda</h2>
-        <p>Cloudflare aloja la web y la base de pedidos; Supabase gestiona las cuentas y la comunidad. Google facilita el inicio de sesión y las fuentes de la página. Mercado Pago procesa los pagos y WhatsApp permite contactar con Carly. Al utilizar estos servicios, sus proveedores pueden tratar datos técnicos, como la dirección IP y datos de la conexión, conforme a sus propias políticas.</p>
+        <p>Cloudflare aloja la web, la base de pedidos, las fichas iniciales y las referencias de los materiales; Supabase gestiona las cuentas, la comunidad y el almacenamiento privado de documentos y videos. Google facilita el inicio de sesión y las fuentes de la página. Mercado Pago procesa los pagos y WhatsApp permite contactar con Carly. Al utilizar estos servicios, sus proveedores pueden tratar datos técnicos, como la dirección IP y datos de la conexión, conforme a sus propias políticas.</p>
         <p>Estos proveedores pueden procesar información en infraestructura situada fuera de México. Puedes consultar sus políticas: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>, <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare</a>, <a href="https://www.mercadopago.com.mx/privacidad" target="_blank" rel="noopener noreferrer">Mercado Pago</a> y <a href="https://www.whatsapp.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
       </section>
 

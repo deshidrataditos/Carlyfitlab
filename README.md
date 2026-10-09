@@ -1,8 +1,27 @@
 # Carlyfit Lab
 
-Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición deportiva y productos Carlyfit Lab. Incluye planes a distancia de 90 días y un plan presencial mensual, catálogo, carrito y pedidos por WhatsApp, además de comunidad con acceso mediante Google, testimonios moderados y promociones para miembros.
+Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición deportiva y productos Carlyfit Lab. Incluye planes a distancia de 90 días, atención presencial a consultar, catálogo, carrito y pedidos por WhatsApp, además de comunidad con acceso mediante Google, testimonios moderados y promociones para miembros.
 
 La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas. Los precios mostrados son los vigentes en MXN para cada presentación y plan.
+
+## Portal de planes y pedidos — actualización del 8 de octubre de 2026
+
+**Mi espacio Carlyfit** incorpora **Mi plan**, **Mis pedidos** y un formulario privado de objetivo, experiencia, casa o gimnasio, días, minutos y equipo disponible, sin campos médicos. Para vincular una compra al portal, el cliente debe iniciar sesión **antes de comprar**. El servidor obtiene el propietario de la sesión; las compras como invitado y los pedidos históricos permanecen sin asignar, aunque coincida el correo, y se coordinan directamente con Carly. El checkout como invitado sigue disponible.
+
+**Administrar tienda y planes** exige el permiso independiente `store_admin`, registrado en `carlyfit_private.store_admins`. Ser moderador de testimonios no concede ese acceso; la migración tampoco asigna el permiso a ninguna cuenta. Carly puede avanzar la preparación y entrega, escribir una nota al cliente y asignar materiales a planes pagados. El estado del pago se consulta al sistema de pagos y no se edita desde este panel.
+
+Rutinas y alimentación se entregan como PDF; los videos privados admiten MP4/WebM. Cada archivo tiene un máximo de **45 MiB**, se almacena en el bucket privado `carlyfit-plans` y utiliza una autorización de carga firmada de **2 horas**. La publicación comprueba el archivo almacenado y registra el acceso del propietario. Si falla la confirmación final, el panel permite reintentar la publicación con el mismo identificador de carga. Los enlaces de descarga emitidos por la aplicación duran **60 segundos**. Tras un reembolso o contracargo, la API bloquea nuevas descargas; el acceso directo de un cliente a un archivo ya publicado requiere **revocación explícita en Storage por un operador autorizado**. Los archivos publicados y su permiso de acceso no caducan automáticamente con el enlace.
+
+El editor público permite completar ingredientes declarados, alérgenos, conservación, anticipación del pedido, presentación y entrega. **Los datos iniciales no incluyen recetas privadas ni sus cantidades de elaboración; tampoco deben introducirse en este editor**. Los datos aún desconocidos quedan para consulta con Carly. Incluye el perfil de Instagram y dos botones al [primer reel](https://www.facebook.com/reel/2470379943438648) y al [segundo reel](https://www.facebook.com/reel/27463019223386626) proporcionados en Facebook, que pueden pedir iniciar sesión. Los enlaces públicos no se utilizan como materiales privados de clientes.
+
+La opción presencial se solicita por consulta con Carly: el SKU fijo `presencial-mensual` está retirado de nuevas compras, conservando los pedidos anteriores. El plan con postres mantiene **5 piezas por paquete**, con **máximo 1 pastel individual entre zanahoria y cheesecake**; los pasteles grandes se compran por separado. Los pasteles requieren **3 días de anticipación**, con fecha de entrega acordada.
+
+Preparación de datos para esta actualización:
+
+- D1: [0002_store_portal.sql](drizzle/0002_store_portal.sql) añade propietarios, preparación, preferencias, materiales y auditoría; [0003_public_product_facts.sql](drizzle/0003_public_product_facts.sql) carga datos públicos iniciales y enlaces, conservando las ediciones existentes de Carly.
+- Supabase: [202610080002_store_portal.sql](supabase/migrations/202610080002_store_portal.sql) crea permisos y almacenamiento privado. Para instalaciones que ya aplicaron su versión anterior, [202610080003_store_storage_guard_permissions.sql](supabase/migrations/202610080003_store_storage_guard_permissions.sql) repara las comprobaciones de permisos de Storage sin reasignar cuentas ni cambiar datos. Verificar el estado del destino antes de aplicar migraciones; la concesión a Carly se realiza por separado con su identidad comprobada.
+
+Actualización del 8 de octubre de 2026: migraciones D1 0002/0003 y Supabase 0002/0003 aplicadas; pruebas transaccionales de permisos completadas con ROLLBACK, sin conservar usuarios ni archivos temporales. Carly recibió el permiso de tienda con confirmación expresa y se verificó el acceso a «Administrar tienda y planes» desde su cuenta. Publicado en carlyfitlab.com, versión `987264a8-22b1-404f-a145-31fd53588380`. Pasaron 88 pruebas automatizadas, TypeScript y compilación; carrito y fichas revisados en celular. No se realizó una compra real ni se asignaron materiales a pedidos reales durante esta revisión.
 
 ## Planes y precios actualizados — 8 de octubre de 2026
 
@@ -66,7 +85,7 @@ Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaci
 | Activa tu fuerza | $1,490 | A distancia, 90 días, entrega única de rutina con video |
 | Tu balance completo | $2,490 | A distancia, 90 días, entrega única de rutina con video y alimentación |
 | El lado dulce del plan | $2,990 | A distancia, 90 días, entrega única y un paquete inicial de postres |
-| Entrena con Carly | $2,200 | Presencial en La Barca, 1 mes, sin cobro recurrente |
+| Entrena con Carly | A consultar | Presencial en La Barca; consulta directa, sin compra del SKU fijo |
 | Psi Cookie | $59 | Por pieza; chocolate con adaptógenos y cáñamo |
 | Core Cookie | $55 | Por pieza; vainilla con centro firme de chocolate |
 | Mermelada sin azúcar | $129 | 300 g |
@@ -76,7 +95,7 @@ Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaci
 | Tiramisú saludable | $140 | Individual, 1 porción |
 | Minitartaleta Crumble de Piña y Dátil | $95 | 1 pieza |
 
-El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los planes incluyen rutina de movilidad. Los tres a distancia se entregan una sola vez, con video explicativo, adaptados a la vida diaria para casa o gimnasio. El presencial es mensual y sus horarios e inicio se acuerdan con Carly. El 8 de octubre el usuario pidió retirar la leyenda «precio sugerido», conservando los importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
+El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan; los pasteles requieren tres días de anticipación. No implica entregas recurrentes; los postres adicionales se compran por separado. Los planes incluyen rutina de movilidad. Los tres a distancia se entregan una sola vez, con video explicativo, adaptados a la vida diaria para casa o gimnasio. La atención presencial, sus condiciones, horarios e inicio se consultan directamente con Carly. El 8 de octubre el usuario pidió retirar la leyenda «precio sugerido», conservando los importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
 
 ## Ejecutar en una computadora
 

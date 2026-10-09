@@ -5,7 +5,7 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, them
 
 const siteMetadata: Metadata = {
   title: "Carlyfit Lab | Entrena, nutre y disfruta",
-  description: "Planes de 90 días para entrenar en casa o gimnasio con video explicativo, entrenamiento presencial mensual, nutrición deportiva y postres Carlyfit Lab en La Barca, Jalisco.",
+  description: "Planes de 90 días para entrenar en casa o gimnasio con video explicativo, acompañamiento personalizado, nutrición deportiva y postres Carlyfit Lab en La Barca, Jalisco.",
   other: {
     "codex-preview": "development",
   },
