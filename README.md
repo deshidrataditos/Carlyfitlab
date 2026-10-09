@@ -4,6 +4,18 @@ Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición 
 
 La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas. Los precios mostrados son los vigentes en MXN para cada presentación y plan.
 
+## Directorio privado de clientes — 9 de octubre de 2026
+
+**Mi cuenta → Administración → Administrar tienda y planes → Clientes** permite consultar nombres, correos, fechas de registro y resumen de pedidos de las cuentas registradas, también si no han comprado. Incluye búsqueda por nombre o correo y páginas de 20 cuentas. Las fechas se muestran en horario de Ciudad de México.
+
+El directorio usa una consulta limitada de Supabase protegida por el permiso `store_admin` existente. No concede roles ni utiliza claves de servicio en el navegador. Supabase comprueba el permiso en cada consulta y conserva la lectura individual de perfiles para el resto de miembros. Solo se consultan los datos necesarios para esta pantalla; el directorio no permite exportar listas, enviar mensajes ni alterar cuentas.
+
+Los pedidos se asocian por el identificador de la cuenta al comprar, nunca por coincidencia de correo. El total de pedidos incluye todos los estados; los pedidos aprobados y su importe se muestran por separado, antes de comisiones. Los invitados no aparecen como cuentas registradas y sus compras no se asignan automáticamente. La lista no se envía al asistente de IA ni se guarda en el almacenamiento local del navegador. Aparecer en ella no suscribe al cliente a promociones.
+
+Requiere aplicar `supabase/migrations/202610090001_store_customers.sql` antes de publicar el código. Las pruebas SQL en `supabase/tests/store_customers.sql` se ejecutan en una transacción revertida, con identidades ficticias y sin conservar registros de prueba.
+
+**Activado y publicado el 9 de octubre de 2026**, con confirmación expresa del acceso para Carly. La comprobación previa confirmó que es la única administradora de tienda. Las pruebas SQL de autorización, revocación, paginación y búsqueda terminaron correctamente y se confirmó su reversión antes de instalar la migración definitiva. Publicación `7a4c93a6-99d3-4be6-a303-a7fe5a7195be`. Pasaron 47 pruebas relacionadas con cuentas, pedidos, moderación y directorio; TypeScript, lint del componente/API y compilación de producción. Se revisaron búsqueda, 45 registros ficticios paginados, errores, revocación y nombres/correos largos en 320 y 1280 px. La sesión real de Carly cargó la lista; el acceso público sin sesión devolvió `401` y `private, no-store`. No se alteraron cuentas ni pedidos, y no se enviaron mensajes. El entorno de pruebas de pagos conserva su versión anterior, con acceso Google desactivado.
+
 ## Operación de tienda y seguimiento — 9 de octubre de 2026
 
 Las seis mejoras se administran con el permiso de tienda existente; no se conceden permisos nuevos.

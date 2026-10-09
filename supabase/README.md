@@ -131,3 +131,9 @@ En la revisión posterior del mismo día, sin borradores en el formulario, se ve
 - TypeScript, cuatro pruebas automatizadas de miembros y la compilación pública pasaron. La validación de aislamiento RLS del 24 de septiembre permanece como comprobación histórica; no se repitió en esta activación.
 
 En la prueba del 4 de octubre el selector mostraba el dominio de Supabase; los tres permisos básicos permitieron completar el acceso. El 8 de octubre se verificó y publicó la marca y se comprobó que el selector ya muestra Carlyfit Lab y su logotipo. La página de privacidad es pública y se enlaza en el pie y el diálogo de acceso. Mercado Pago conserva los cobros reales habilitados, independientes del registro; falta comprobar la primera compra real y su conciliación. Consultar [ACTIVAR-GOOGLE.md](../ACTIVAR-GOOGLE.md) y [ACTIVACION.md](../ACTIVACION.md).
+
+## Directorio privado de clientes
+
+La migración `202610090001_store_customers.sql` añade una consulta de solo lectura para la pestaña **Clientes**. La función pública es un envoltorio invocador de una función privada con `search_path` vacío; ambas rechazan el acceso de visitantes y la privada exige el permiso `store_admin` en cada llamada. No concede ese permiso a nuevas cuentas ni abre la tabla de autenticación. La consulta devuelve únicamente identificador, nombre, correo y fecha de registro de cuentas no anónimas y no eliminadas, con búsqueda literal y límite máximo de 21 filas. El servidor completa los resúmenes de pedidos desde D1 utilizando el identificador exacto de cuenta.
+
+Ejecutar `tests/store_customers.sql` como propietario permite comprobar las restricciones con identidades ficticias dentro de una transacción que termina en `ROLLBACK`. Ningún registro de prueba se conserva ni se envía correo. En el editor SQL, al sustituir una consulta, seleccionar y borrar el documento completo antes de pegar otra; el campo de texto de Monaco puede representar únicamente las líneas visibles.

@@ -34,6 +34,7 @@ export default function PrivacyPage() {
         <p>Al registrarte o iniciar sesión, Google confirma tu identidad y comparte los datos básicos de tu perfil: nombre, correo e identificador de cuenta. El servicio de acceso puede recibir también la URL de tu foto de perfil; actualmente no la mostramos en la comunidad.</p>
         <p>Usamos Supabase para gestionar el acceso y guardar tu perfil, las preferencias que elijas y las experiencias que envíes. Estos datos permiten reconocer tu cuenta, mostrarte tu espacio de miembro y proteger el acceso a tu información. No recibimos tu contraseña de Google ni solicitamos leer tus mensajes de Gmail, contactos o archivos.</p>
         <p>Puedes cambiar tu nombre para la comunidad y tu preferencia de promociones desde tu espacio Carlyfit. Tu correo no se muestra en los testimonios públicos.</p>
+        <p>Para atender tu cuenta, Carly y las personas autorizadas para administrar la tienda pueden consultar tu nombre, correo, fecha de registro y un resumen de los pedidos vinculados a tu cuenta, aunque todavía no hayas comprado. Esta lista es privada y no se comparte con el asistente de IA. Aparecer en ella no te suscribe a promociones.</p>
       </section>
 
       <section>
