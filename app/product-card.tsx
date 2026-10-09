@@ -26,7 +26,7 @@ export default function ProductCard({variants,onDetails,onAdd}:{variants:Catalog
   <div className="product-info">
    <button onClick={()=>onDetails(selected)}><h3>{selected.name}</h3></button>
    <ProductPresentation item={selected} onChange={setSelected} context="card"/>
-   <div className="product-buy"><div><strong>{money(selected.price)} <small>MXN</small></strong><p>{selected.presentation}</p>{selected.priceProvisional&&<p>Precio sugerido</p>}</div><button className="icon-button" onClick={()=>onAdd(selected.id)} aria-label={`Agregar ${selected.name}, ${selected.presentation}, al carrito`}><Plus size={22}/></button></div>
+   <div className="product-buy"><div><strong>{money(selected.price)} <small>MXN</small></strong><p>{selected.presentation}</p></div><button className="icon-button" onClick={()=>onAdd(selected.id)} aria-label={`Agregar ${selected.name}, ${selected.presentation}, al carrito`}><Plus size={22}/></button></div>
    {(selected.excludedFromPlans||selected.planNote)&&<p className="product-plan-note">{selected.planNote??'Venta por separado · No incluido en los planes'}</p>}
   </div>
  </article>;

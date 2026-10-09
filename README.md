@@ -2,7 +2,17 @@
 
 Sitio de Carla Judith Fernández Arzate: entrenamiento, asesoría en nutrición deportiva y productos Carlyfit Lab. Incluye planes de 90 días, catálogo, carrito y pedidos por WhatsApp, además de comunidad con acceso mediante Google, testimonios moderados y promociones para miembros.
 
-La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas y los importes aún sugeridos se identifican como provisionales.
+La atención es en línea y presencial en La Barca, Jalisco. Los productos pueden solicitarse por separado o junto con un plan. El paquete inicial del plan con postres permite incluir hasta un pastel individual de zanahoria o cheesecake entre sus cinco piezas; los pasteles completos de 15 cm se venden por separado. Los envíos se cotizan antes de cobrar. Las imágenes son ilustrativas. Los precios mostrados son los vigentes en MXN para cada presentación y plan.
+
+## Precios, certificaciones y fotografía — 8 de octubre de 2026
+
+Se retiró la leyenda de precio sugerido de los planes, las tarjetas y detalles de productos, el carrito, la información de compra y el mensaje preparado para WhatsApp. Todos los importes y las presentaciones se conservan; el catálogo indica que los precios ya no son provisionales.
+
+Los nombres de los programas se contrastaron con las páginas oficiales de [Entrenador Profesional de Pesas](https://www.fisicoculturismomx.com/index.php/certificacioneslinea/entrenador-profesional) y [Asesor en Nutrición Deportiva](https://fisicoculturismomx.com/index.php/certificacioneslinea/nutricion-deportiva). Se reemplazó la referencia genérica a WABBA México por el aval publicado de **Fisicoculturismo México S.C. y WABBA International**, con enlaces a las fuentes. Esta revisión de nomenclatura no constituye una comprobación independiente de folios personales.
+
+Se añadió la fotografía proporcionada por el usuario, sin alteraciones, en la introducción a los planes: `public/images/carly-training.png`. Conserva el cuerpo completo, dimensiones intrínsecas y carga diferida; el bloque se apila en móvil.
+
+Validación: TypeScript y compilación para Cloudflare aprobados; 8 pruebas de comercio aprobadas para la actualización de precios. Revisión visual en escritorio y en viewport móvil de 390 px, sin desbordamiento horizontal y con fotografía completa. La vista local usó la fecha de compatibilidad del runtime instalado solo durante la revisión visual; la configuración de producción se conservó. En el sitio público se verificaron la fotografía cargada, los enlaces de certificaciones, los precios sin la leyenda anterior, los detalles de producto y la información de compra. Versión pública final: `271054e1-8138-474d-865a-48463fff2093`. El entorno de pruebas no se modificó.
 
 ## Moderación de comentarios — publicación del 8 de octubre de 2026
 
@@ -45,19 +55,19 @@ Consulta [ACTIVACION.md](ACTIVACION.md) para el registro detallado de comprobaci
 
 | Artículo | Precio MXN | Presentación / estado |
 | --- | --- | --- |
-| Activa tu fuerza | $1,490 | 90 días; precio sugerido provisional |
-| Tu balance completo | $2,490 | 90 días; precio sugerido provisional |
-| El lado dulce del plan | $2,990 | 90 días y un paquete inicial de postres; precio sugerido provisional |
+| Activa tu fuerza | $1,490 | 90 días |
+| Tu balance completo | $2,490 | 90 días |
+| El lado dulce del plan | $2,990 | 90 días y un paquete inicial de postres |
 | Psy Cookie | $59 | Por pieza; chocolate con adaptógenos y cáñamo |
 | Core Cookie | $55 | Por pieza; vainilla con centro firme de chocolate |
-| Mermelada sin azúcar | $129 | 300 g; precio sugerido |
-| Golden milk | $189 | 250 g; precio sugerido |
-| Pastel de zanahoria | $95 / $590 | Individual, 1 porción / completo, 15 cm de diámetro; precios sugeridos |
-| Cheesecake Carlyfit | $99 / $590 | Individual, 1 porción / completo, 15 cm de diámetro; precios sugeridos |
-| Tiramisú saludable | $109 | Individual, 1 porción; precio sugerido |
-| Minitartaleta Crumble de Piña y Dátil | $65 | 1 pieza; precio sugerido |
+| Mermelada sin azúcar | $129 | 300 g |
+| Golden milk | $189 | 250 g |
+| Pastel de zanahoria | $95 / $590 | Individual, 1 porción / completo, 15 cm de diámetro |
+| Cheesecake Carlyfit | $99 / $590 | Individual, 1 porción / completo, 15 cm de diámetro |
+| Tiramisú saludable | $109 | Individual, 1 porción |
+| Minitartaleta Crumble de Piña y Dátil | $65 | 1 pieza |
 
-El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los tres planes incluyen rutina de movilidad. Los precios sugeridos se mantienen por indicación del usuario como importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
+El paquete inicial del plan con postres incluye **cinco piezas en total, a elegir entre los productos, con opción de incluir hasta un pastel individual de zanahoria o cheesecake**, para probarlos y decidir con Carly cuáles integrar a la alimentación. El pastel individual ocupa una de las cinco piezas, no es un artículo adicional. Los pasteles completos de 15 cm se compran por separado. El tiempo de preparación se acuerda con Carly al comenzar el plan. No implica entregas recurrentes; los postres adicionales se compran por separado. Los tres planes incluyen rutina de movilidad. El 8 de octubre el usuario pidió retirar la leyenda «precio sugerido», conservando los importes vigentes para el cobro en línea: el total mostrado en el carrito es el importe de los productos y planes que se cobrará. Los envíos se cotizan antes de pagar. Las imágenes ilustrativas del catálogo están publicadas.
 
 ## Ejecutar en una computadora
 
