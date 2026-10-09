@@ -21,6 +21,7 @@
     "CATALOG_CONFIRMED": "true",
     "MERCADOPAGO_MODE": "test",
     "GOOGLE_AUTH_ENABLED": "false",
-    "SITE_TESTING": "true"
+    "SITE_TESTING": "true",
+    "ASSISTANT_ENABLED": "false"
   }
 }

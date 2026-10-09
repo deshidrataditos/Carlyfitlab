@@ -2,6 +2,7 @@
 
 import {useCallback,useEffect,useState} from 'react';
 import MemberCommunity from './member-community';
+import StoreAssistant from './store-assistant';
 import DessertPackPicker from './dessert-pack-picker';
 import {ProductInformation,StudioLinks,emptyStoreContent,type PublicStoreContent} from './product-information';
 import {dessertPackCount,validateDessertSelection,dessertSelectionSummary,type DessertSelection} from '@/lib/dessert-pack';
@@ -19,9 +20,10 @@ const generalContact=whatsapp('Hola, Carly. Me gustaría recibir información so
 export default function Storefront(){
  const [cart,setCart]=useState<CartLine[]>([]);
  const [dessertSelection,setDessertSelection]=useState<DessertSelection>([]);
- const [signedIn,setSignedIn]=useState(false);
+ const [userId,setUserId]=useState<string|null>(null);
+ const signedIn=!!userId;
  const [storeContent,setStoreContent]=useState<PublicStoreContent>(emptyStoreContent);
- const onUserChange=useCallback((user:{id:string;email?:string}|null)=>setSignedIn(!!user),[]);
+ const onUserChange=useCallback((user:{id:string;email?:string}|null)=>setUserId(user?.id??null),[]);
  useEffect(()=>{const controller=new AbortController();fetch('/api/store/content',{signal:controller.signal}).then(response=>response.ok?response.json():null).then(value=>{const data=value as PublicStoreContent|null;if(data&&data.products&&typeof data.products==='object')setStoreContent(data);}).catch(()=>{});return()=>controller.abort();},[]);
  const [cartOpen,setCartOpen]=useState(false);
  const [accountOpen,setAccountOpen]=useState(false);
@@ -86,6 +88,7 @@ export default function Storefront(){
  function account(mode:'register'|'login'='register'){setAccountMode(mode);setAccountOpen(true);setMenu(false);}
 
  return <>
+  <StoreAssistant userId={userId} onSignIn={()=>account('login')}/>
   <div className="announcement">Hecho para disfrutar. Diseñado para avanzar. <span>Envíos a todo México</span></div>
   <header className="site-header">
    <a href="#inicio" className="brand" aria-label="Carlyfit Lab, inicio"><img src="/images/carlyfit-brand-mark.png" width="48" height="48" alt=""/><div className="wordmark">carlyfit<span>LAB</span><i>ENTRENA · NUTRE · DISFRUTA</i></div></a>

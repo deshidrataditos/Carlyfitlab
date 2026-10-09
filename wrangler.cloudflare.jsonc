@@ -10,6 +10,7 @@
     { "pattern": "www.carlyfitlab.com", "custom_domain": true }
   ],
   "keep_vars": true,
+  "ai": { "binding": "AI" },
   "observability": { "enabled": true, "head_sampling_rate": 0.1 },
   "d1_databases": [
     {
@@ -24,6 +25,7 @@
     "PAYMENTS_ENABLED": "true",
     "CATALOG_CONFIRMED": "true",
     "MERCADOPAGO_MODE": "live",
-    "GOOGLE_AUTH_ENABLED": "true"
+    "GOOGLE_AUTH_ENABLED": "true",
+    "ASSISTANT_ENABLED": "true"
   }
 }

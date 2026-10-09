@@ -50,6 +50,13 @@ export default function PrivacyPage() {
       </section>
 
       <section>
+        <h2>Asistente de inteligencia artificial</h2>
+        <p>El asistente requiere iniciar sesión. Envía tu pregunta y la información pública del catálogo a Cloudflare Workers AI para generar una respuesta. No enviamos al modelo tu nombre, correo, identificador de cuenta, pedidos, ficha inicial ni archivos de entrenamiento. Evita escribir datos personales o de salud en tus preguntas.</p>
+        <p>La conversación permanece en la memoria de esta página y se borra al cerrar el asistente, recargar o cambiar de cuenta. No guardamos el texto de las preguntas ni las respuestas en nuestra base de datos. Para controlar el uso, conservamos tu identificador de cuenta, un identificador de solicitud y sus tiempos; los registros con más de 48 horas se eliminan al procesar una nueva consulta. Cloudflare procesa las solicitudes según su <a href="https://developers.cloudflare.com/workers-ai/platform/data-usage/" target="_blank" rel="noopener noreferrer">política de datos de Workers AI</a>.</p>
+        <p>Las respuestas son informativas y pueden contener errores. El asistente no prepara dietas o rutinas personalizadas, no realiza compras ni consulta información privada de clientes. Para atención personalizada, contacta a Carly.</p>
+      </section>
+
+      <section>
         <h2>Qué se guarda en tu navegador</h2>
         <p>Utilizamos cookies de autenticación para mantener y proteger tu sesión. Puedes cerrarla desde tu espacio Carlyfit. El carrito, la selección del paquete inicial y las referencias necesarias para actualizarlo al confirmar una compra se guardan en el almacenamiento local de este navegador.</p>
         <p>Puedes borrar estos datos desde las opciones de tu navegador. Al hacerlo puedes perder el carrito guardado y necesitar iniciar sesión de nuevo; borrar el navegador no elimina tu cuenta ni los pedidos registrados.</p>

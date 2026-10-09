@@ -216,6 +216,20 @@ La activación autorizada habilita `CATALOG_CONFIRMED=true` y `PAYMENTS_ENABLED=
 
 El servidor valida la firma, consulta el pago en Mercado Pago y contrasta receptor, importe, moneda y modo antes de actualizar el pedido. Volver a la página de confirmación no acredita el cobro. Los productos físicos de esta primera integración se cobran para recolección; los envíos requieren cotización por WhatsApp.
 
+## Asistente de la tienda (Cloudflare Workers AI)
+
+`/api/assistant` requiere una sesión validada con Supabase en el servidor y rechaza usuarios anónimos. Usa exclusivamente el catálogo disponible y la fila pública de fichas; no envía al modelo identidad, pedidos, fichas de clientes ni materiales privados. Cada pregunta es independiente. No tiene herramientas para comprar, modificar carritos o administrar datos.
+
+La conexión usa el binding `AI`, sin claves en JavaScript del navegador. El modelo fijado es `@cf/meta/llama-3.1-8b-instruct-fp8`, con un máximo de 450 tokens de salida y 20.000 bytes UTF-8 entre instrucciones, catálogo y pregunta. El panel Workers confirmó el plan **Free** el 8 de octubre de 2026; no se cambió la suscripción. La cuota de Workers AI es compartida con otros usos de la cuenta.
+
+Antes de activar `ASSISTANT_ENABLED=true`, aplicar `drizzle/0004_assistant_usage.sql`. Una inserción condicional en D1 reserva cada consulta de forma atómica: **12 por cuenta y 30 globales por día UTC**, espera de 30 segundos y reserva en curso de 90 segundos. El contador sobrevive a despliegues y solicitudes concurrentes. El día UTC se renueva a las 18:00 de México central; la interfaz muestra la fecha local. Fallos y timeout no devuelven la consulta ni provocan reintentos automáticos. No se guardan preguntas/respuestas. Los identificadores de solicitudes con más de 48 horas se limpian en el siguiente uso. La interfaz mantiene WhatsApp como alternativa.
+
+Para suspenderlo, establecer `ASSISTANT_ENABLED=false` en el servidor. Testing permanece desactivado y sin binding de IA. Las pruebas de `tests/assistant*.test.mjs` usan dobles del proveedor y SQLite local: no consumen IA ni prueban por sí solas la disponibilidad real del modelo. La verificación final en la web debe incluir una consulta con sesión y el rechazo HTTP 401 sin sesión.
+
+Referencias: [cuota y precios](https://developers.cloudflare.com/workers-ai/platform/pricing/), [modelo](https://developers.cloudflare.com/workers-ai/models/llama-3.1-8b-instruct-fp8/), [uso de datos](https://developers.cloudflare.com/workers-ai/platform/data-usage/).
+
+Verificación del 8 de octubre de 2026: migración aplicada en D1 local y producción, compilación y TypeScript correctos, 114 pruebas aprobadas (26 específicas del asistente). GET y POST sin sesión devuelven 401 con caché privada desactivada; las consultas con sesión en la web pública obtuvieron precios correctos de las galletas y la regla de un pastel individual en el paquete, descontando el contador. El diálogo se revisó en escritorio y móvil de 390 px. Publicación del asistente: `17754705-1565-4d78-8c51-62baf6733583`.
+
 ## Archivos principales
 
 | Ruta | Contenido |
