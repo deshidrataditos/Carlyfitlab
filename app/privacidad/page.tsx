@@ -37,6 +37,12 @@ export default function PrivacyPage() {
       </section>
 
       <section>
+        <h2>Tu correo de bienvenida</h2>
+        <p>Cuando creas una cuenta nueva, enviamos un correo de bienvenida a la dirección confirmada por Google. El mensaje explica cómo entrar a tu cuenta y utilizarla; no te suscribe a promociones. Si respondes, tu mensaje llega a Carly.</p>
+        <p>Usamos Resend para entregar este correo. Compartimos con ese servicio la dirección destinataria, el mensaje de bienvenida y una referencia técnica del envío. Para evitar duplicados y recuperar errores temporales, guardamos el estado del envío asociado a tu cuenta. La dirección y el contenido se eliminan de la cola cuando el envío se completa o se descarta al finalizar sus reintentos; conservamos la referencia y el estado para no repetir el correo.</p>
+      </section>
+
+      <section>
         <h2>Experiencias y promociones</h2>
         <p>Si compartes una experiencia, guardamos el texto, la calificación, la fecha y su estado de revisión, asociados a tu cuenta. Tras la aprobación, se publican el nombre que elegiste para la comunidad, el comentario, la calificación y la fecha. Comparte únicamente lo que quieras hacer público; evita incluir información de salud u otros datos sensibles.</p>
         <p>Las promociones para miembros aparecen en tu espacio de cuenta. Recibir promociones por correo es opcional: la casilla está desactivada inicialmente y puedes cambiar esa preferencia cuando quieras. Registrarte no te suscribe automáticamente a comunicaciones promocionales.</p>
@@ -65,7 +71,7 @@ export default function PrivacyPage() {
       <section>
         <h2>Servicios que hacen posible la tienda</h2>
         <p>Cloudflare aloja la web, la base de pedidos, las fichas iniciales y las referencias de los materiales; Supabase gestiona las cuentas, la comunidad y el almacenamiento privado de documentos y videos. Google facilita el inicio de sesión y las fuentes de la página. Mercado Pago procesa los pagos y WhatsApp permite contactar con Carly. Al utilizar estos servicios, sus proveedores pueden tratar datos técnicos, como la dirección IP y datos de la conexión, conforme a sus propias políticas.</p>
-        <p>Estos proveedores pueden procesar información en infraestructura situada fuera de México. Puedes consultar sus políticas: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>, <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare</a>, <a href="https://www.mercadopago.com.mx/privacidad" target="_blank" rel="noopener noreferrer">Mercado Pago</a> y <a href="https://www.whatsapp.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
+        <p>Estos proveedores pueden procesar información en infraestructura situada fuera de México. Puedes consultar sus políticas: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google</a>, <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare</a>, <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Resend</a>, <a href="https://www.mercadopago.com.mx/privacidad" target="_blank" rel="noopener noreferrer">Mercado Pago</a> y <a href="https://www.whatsapp.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
       </section>
 
       <section>

@@ -1,5 +1,8 @@
 import {MemberInputError, checkMemberOrigin, memberBody, profileInput} from '@/lib/member-input';
 import {memberSession, memberJson, memberFailure, unavailable} from '@/lib/supabase-server';
+import {env} from 'cloudflare:workers';
+import {after} from 'next/server';
+import {enqueueWelcomeEmail, deliverWelcomeEmail, type WelcomeEmailBindings} from '@/lib/welcome-email';
 
 export async function GET(request: Request) {
   const session = memberSession(request);
@@ -10,6 +13,12 @@ export async function GET(request: Request) {
     if (!user) {
       if (userError && userError.name !== 'AuthSessionMissingError' && userError.status !== 401 && userError.status !== 403) throw userError;
       return session.finish(memberJson({configured: session.config.enabled, ...guest}));
+    }
+    if (!userError && !user.is_anonymous) {
+      try {
+        const bindings = env as unknown as WelcomeEmailBindings;
+        if (await enqueueWelcomeEmail(bindings, user)) after(() => deliverWelcomeEmail(bindings, user.id).catch(() => {}));
+      } catch { /* A pending welcome must not block access to the customer's account. */ }
     }
     const [profile, testimonials, promotions, permission] = await Promise.all([
       session.client.from('profiles').select('display_name,marketing_opt_in').eq('id', user.id).single(),

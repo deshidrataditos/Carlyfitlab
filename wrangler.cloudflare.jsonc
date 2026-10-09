@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "carlyfit-lab",
-  "main": "vinext/server/fetch-handler",
+  "main": "workers/store-worker.ts",
   "compatibility_date": "2026-09-30",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
@@ -11,6 +11,7 @@
   ],
   "keep_vars": true,
   "ai": { "binding": "AI" },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "observability": { "enabled": true, "head_sampling_rate": 0.1 },
   "d1_databases": [
     {
@@ -26,6 +27,8 @@
     "CATALOG_CONFIRMED": "true",
     "MERCADOPAGO_MODE": "live",
     "GOOGLE_AUTH_ENABLED": "true",
-    "ASSISTANT_ENABLED": "true"
+    "ASSISTANT_ENABLED": "true",
+    "WELCOME_EMAIL_ENABLED": "true",
+    "WELCOME_EMAIL_START_AT": "2026-10-09T02:30:25Z"
   }
 }

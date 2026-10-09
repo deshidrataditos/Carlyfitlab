@@ -22,6 +22,8 @@
     "MERCADOPAGO_MODE": "test",
     "GOOGLE_AUTH_ENABLED": "false",
     "SITE_TESTING": "true",
-    "ASSISTANT_ENABLED": "false"
+    "ASSISTANT_ENABLED": "false",
+    "WELCOME_EMAIL_ENABLED": "false",
+    "WELCOME_EMAIL_START_AT": ""
   }
 }
