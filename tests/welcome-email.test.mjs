@@ -236,6 +236,8 @@ test('custom Worker delegates fetch and awaits the scheduled queue runner', asyn
     if(name==='vinext/server/fetch-handler')return {default:{fetch}};
     if(name==='../lib/welcome-email')return {processWelcomeEmailQueue:env=>{received.push(env);return runner;}};
     if(name==='../lib/plan-email')return {processPlanEmailQueue:async()=>{}};
+    if(name==='../lib/material-email')return {processMaterialEmailQueue:async()=>{}};
+    if(name==='../lib/product-availability')return {processProductReservations:async()=>{}};
     throw new Error(name);
   }});
   assert.equal(exported.default.fetch,fetch);

@@ -41,8 +41,8 @@ function paymentHarness({variables={},missing=[],payment=authoritativePayment,up
  return {payment:exported,calls,setPayment:next=>{currentPayment=next;}};
 }
 
-function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},emailEnqueueFails=false,...options}={}){
- const fixture=paymentHarness(options);const exported={};const writes=[];const reads=[];const logs=[];const queued=[];const delivered=[];const background=[];
+function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},emailEnqueueFails=false,availabilityFails=false,...options}={}){
+ const fixture=paymentHarness(options);const exported={};const writes=[];const reads=[];const logs=[];const queued=[];const delivered=[];const background=[];const availability=[];
  const database=new DatabaseSync(':memory:');t.after(()=>database.close());
  for(const path of ['../drizzle/0000_abandoned_darwin.sql','../drizzle/0001_payment_update_timestamp.sql']){
   database.exec(readFileSync(new URL(path,import.meta.url),'utf8'));
@@ -55,6 +55,7 @@ function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},emailEnqueue
  const dependencies={
   'cloudflare:workers':{env:dbAvailable?{DB}:{}},
   '@/lib/payment':fixture.payment,
+  '@/lib/product-availability':{reconcileProductReservation:async(_db,id)=>{availability.push({id,status:database.prepare('SELECT status FROM orders WHERE id=?').get(id)?.status});if(availabilityFails)throw new Error('availability unavailable');}},
   '@/lib/plan-email':{enqueuePlanEmail:async(_bindings,id)=>{queued.push({id,status:database.prepare('SELECT status FROM orders WHERE id=?').get(id)?.status});if(emailEnqueueFails)throw new Error('email unavailable');return true;},deliverPlanEmail:async(_bindings,id)=>{delivered.push(id);}},
   'next/server':{after:fn=>background.push(fn)},
  };
@@ -62,7 +63,7 @@ function webhookHarness(t,{dbAvailable=true,beforeWrite=async()=>{},emailEnqueue
   exports:exported,require:name=>{assert.ok(name in dependencies);return dependencies[name];},
   URL,Response,console:{error:(...args)=>logs.push(args)},
  });
- return {...fixture,writes,reads,logs,queued,delivered,flush:async()=>{for(const fn of background.splice(0))await fn();},run:request=>exported.POST(request),
+ return {...fixture,writes,reads,logs,queued,delivered,availability,flush:async()=>{for(const fn of background.splice(0))await fn();},run:request=>exported.POST(request),
   order:()=>({...database.prepare("SELECT status,payment_id FROM orders WHERE id='order-1'").get()}),
   updatedAt:()=>database.prepare("SELECT payment_updated_at FROM orders WHERE id='order-1'").get().payment_updated_at,
  };
@@ -248,4 +249,10 @@ test('email enqueue failure does not undo or reject a confirmed payment',async t
  await fixture.flush();
  assert.deepEqual(fixture.delivered,[]);
  assert.deepEqual(fixture.logs,[]);
+});
+
+test('availability reconciliation uses stored authoritative state and failures remain retryable before email',async t=>{
+ const valid=webhookHarness(t);assert.equal((await valid.run(await signedRequest())).status,200);assert.deepEqual(valid.availability,[{id:'order-1',status:'approved'}]);
+ const invalid=webhookHarness(t,{payment:{...authoritativePayment,transaction_amount:1}});assert.equal((await invalid.run(await signedRequest())).status,400);assert.equal(invalid.availability.length,0);
+ const failed=webhookHarness(t,{availabilityFails:true});assert.equal((await failed.run(await signedRequest())).status,503);assert.equal(failed.order().status,'approved');assert.equal(failed.queued.length,0);
 });

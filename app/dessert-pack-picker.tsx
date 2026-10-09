@@ -6,15 +6,20 @@ import {DESSERTS_PER_PACK,dessertPackProducts,dessertSelectionCount,isDessertPac
 import {isCheesecake} from '@/lib/product-options';
 import CheesecakeToppingPicker from './product-options';
 import './dessert-pack.css';
+import ProductAvailability from './product-availability';
+import {availableLimit,type AvailabilityMap} from '@/lib/availability-view';
+import type {CartLine} from '@/lib/catalog';
 
 export type DessertPackPickerProps={
  packCount:number;
  value:DessertSelection;
  onChange:(selection:DessertSelection)=>void;
  disabled?:boolean;
+ availability?:AvailabilityMap|null;
+ cart?:CartLine[];
 };
 
-export default function DessertPackPicker({packCount,value,onChange,disabled=false}:DessertPackPickerProps){
+export default function DessertPackPicker({packCount,value,onChange,disabled=false,availability,cart=[]}:DessertPackPickerProps){
  const sectionId=useId();
  if(packCount<1)return null;
  const total=DESSERTS_PER_PACK*packCount;
@@ -52,11 +57,13 @@ export default function DessertPackPicker({packCount,value,onChange,disabled=fal
     const quantity=line?.quantity??0;
     const cake=isDessertPackCake(item.id);
     const cakeLimit=cake&&cakeCount>=packCount;
-    const addDisabled=disabled||remaining<=0||cakeLimit;
+    const stockLimit=availableLimit(availability?.[item.id]);
+    const stockReached=quantity+(cart.find(line=>line.id===item.id)?.quantity??0)>=stockLimit;
+    const addDisabled=disabled||remaining<=0||cakeLimit||stockReached;
     const displayName=`${item.name}${cake?' individual':''}`;
     const limitNote=cakeLimit?'Ya elegiste el máximo de pasteles individuales':remaining<=0?'Ya elegiste todas las piezas':undefined;
     return <li className={`dessert-pack-product${quantity?' is-selected':''}`} key={item.id}>
-     <div className="dessert-pack-product-copy"><strong>{displayName}</strong><span>{item.presentation}</span></div>
+     <div className="dessert-pack-product-copy"><strong>{displayName}</strong><span>{item.presentation}</span><ProductAvailability item={availability?.[item.id]}/></div>
      <div className="dessert-pack-quantity" role="group" aria-label={`Cantidad de ${displayName}`}>
       <button type="button" disabled={disabled||quantity===0} onClick={()=>change(item.id,-1)} aria-label={`Quitar una pieza de ${displayName}`}><Minus size={15} aria-hidden="true"/></button>
       <output aria-label={`Piezas de ${displayName}`}>{quantity}</output>

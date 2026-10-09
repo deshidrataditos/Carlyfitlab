@@ -18,7 +18,7 @@ const upload = {action: 'prepare', orderId, title: 'Mi rutina', kind: 'routine',
 
 function harness({user = {id: owner, email: 'member@example.invalid'}, allowed = false, permissionError = null, configured = true, missingObject = false, objectSize = 250, objectType = 'application/pdf', signingError = false, publicationFailures = 0, beforeBatch} = {}) {
   const db = new DatabaseSync(':memory:');
-  for (const name of ['0000_abandoned_darwin.sql', '0001_payment_update_timestamp.sql', '0002_store_portal.sql', '0006_plan_email.sql', '0007_plan_intake.sql']) db.exec(readFileSync(new URL(`../drizzle/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['0000_abandoned_darwin.sql', '0001_payment_update_timestamp.sql', '0002_store_portal.sql', '0006_plan_email.sql', '0007_plan_intake.sql', '0008_plan_progress.sql', '0009_product_availability.sql', '0010_material_emails.sql']) db.exec(readFileSync(new URL(`../drizzle/${name}`, import.meta.url), 'utf8'));
   const calls = [];
   const statement = (sql, values = []) => ({
     bind: (...args) => statement(sql, args),
@@ -59,6 +59,7 @@ function harness({user = {id: owner, email: 'member@example.invalid'}, allowed =
   const auth = {memberSession: () => configured ? session : null, memberJson: json, memberFailure: error => json({error: error.status ? error.message : 'Unavailable'}, error.status ?? 503)};
   function load(path) {
     if (path === 'cloudflare:workers') return {env: {DB: d1}};
+    if (path === 'next/server') return {after: () => {}};
     if (path.endsWith('supabase-server')) return auth;
     const normalized = path.replace(/^@\//, '').replace(/^\.\//, 'lib/').replace(/\.ts$/, '');
     if (cache.has(normalized)) return cache.get(normalized);
@@ -175,6 +176,18 @@ test('a concurrent refund prevents fulfillment and does not create a misleading 
   assert.equal((await h.post('admin', fulfillment)).status, 409);
   assert.equal(h.db.prepare('SELECT fulfillment_status FROM orders').get().fulfillment_status, 'received');
   assert.equal(h.db.prepare('SELECT count(*) AS n FROM store_audit').get().n, 0);
+});
+
+test('availability conflicts block fulfillment before validation and atomically if capacity changes concurrently', async () => {
+  const blocked=harness({allowed:true});blocked.seedOrder();blocked.db.prepare("UPDATE orders SET availability_status='conflict' WHERE id=?").run(orderId);
+  assert.equal((await blocked.post('admin',fulfillment)).status,409);
+  assert.equal(blocked.db.prepare('SELECT fulfillment_status FROM orders').get().fulfillment_status,'received');
+  assert.equal(blocked.db.prepare('SELECT count(*) AS n FROM store_audit').get().n,0);
+  const raced=harness({allowed:true,beforeBatch:db=>db.prepare("UPDATE orders SET availability_status='conflict' WHERE id=?").run(orderId)});raced.seedOrder();
+  assert.equal((await raced.post('admin',fulfillment)).status,409);
+  assert.equal(raced.db.prepare('SELECT fulfillment_status,version FROM orders').get().fulfillment_status,'received');
+  assert.equal(raced.db.prepare('SELECT version FROM orders').get().version,0);
+  assert.equal(raced.db.prepare('SELECT count(*) AS n FROM store_audit').get().n,0);
 });
 
 test('digital and pickup orders cannot be shipped and fulfilled orders cannot regress', () => {

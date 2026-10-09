@@ -2,6 +2,7 @@ import {MemberInputError, checkMemberOrigin, memberBody} from '@/lib/member-inpu
 import {memberSession, memberJson} from '@/lib/supabase-server';
 import {checkFulfillmentTransition, fulfillmentInput, storeQuery, type StoreIntake} from '@/lib/store-input';
 import {ADMIN_ORDER_LIMIT, materialsForOrders, orderHasPlan, presentOrder, requireStoreAdmin, requireStoreUser, storeDatabase, storeFailure, type StoreOrder} from '@/lib/store-server';
+import {dashboardOrderQuery} from '@/lib/store-dashboard';
 
 export async function GET(request: Request) {
   const session = memberSession(request);
@@ -10,8 +11,9 @@ export async function GET(request: Request) {
     await requireStoreAdmin(session!);
     const db = storeDatabase();
     const {status, offset} = storeQuery(request.url);
-    const orders = await db.prepare('SELECT o.*,m.email FROM orders AS o LEFT JOIN member_directory AS m ON m.user_id=o.user_id WHERE (?=\'\' OR o.status=?) ORDER BY o.created_at DESC,o.id DESC LIMIT ? OFFSET ?')
-      .bind(status, status, ADMIN_ORDER_LIMIT + 1, offset).all<StoreOrder>();
+    const query = dashboardOrderQuery(request.url);
+    const orders = await db.prepare(`SELECT o.*,m.email FROM orders AS o LEFT JOIN member_directory AS m ON m.user_id=o.user_id WHERE (?='' OR o.status=?) AND (${query.sql}) ORDER BY o.created_at DESC,o.id DESC LIMIT ? OFFSET ?`)
+      .bind(status, status, ...query.values, ADMIN_ORDER_LIMIT + 1, offset).all<StoreOrder>();
     const page = orders.results.slice(0, ADMIN_ORDER_LIMIT);
     const ids = [...new Set(page.map(order => order.user_id).filter((id): id is string => Boolean(id)))];
     const [materials, intakeRows] = await Promise.all([
@@ -33,12 +35,13 @@ export async function POST(request: Request) {
     const order = await db.prepare('SELECT * FROM orders WHERE id=?').bind(input.orderId).first<StoreOrder>();
     if (!order) throw new MemberInputError('Este pedido ya no está disponible.', 404);
     if (order.version !== input.expectedVersion) throw new MemberInputError('El pedido cambió. Actualiza la lista antes de continuar.', 409);
+    if (['conflict','released'].includes(order.availability_status ?? 'legacy')) throw new MemberInputError('Revisa la reserva y acuerda la disponibilidad con el cliente antes de preparar este pedido.',409);
     checkFulfillmentTransition(order.status, order.fulfillment_status, input.fulfillmentStatus, order.delivery);
     const now = new Date().toISOString();
     // D1 batches are transactional. changes() makes the audit insert contingent
     // on the preceding conditional update, including concurrent payment changes.
     const result = await db.batch([
-      db.prepare('UPDATE orders SET fulfillment_status=?,fulfillment_note=?,version=version+1 WHERE id=? AND version=? AND status=?')
+      db.prepare("UPDATE orders SET fulfillment_status=?,fulfillment_note=?,version=version+1 WHERE id=? AND version=? AND status=? AND COALESCE(availability_status,'legacy') NOT IN ('conflict','released')")
         .bind(input.fulfillmentStatus, input.fulfillmentNote, order.id, input.expectedVersion, order.status),
       db.prepare('INSERT INTO store_audit (id,actor_id,order_id,action,details,created_at) SELECT ?,?,?,?,?,? WHERE changes()=1')
         .bind(crypto.randomUUID(), user.id, order.id, 'fulfillment', JSON.stringify({from: order.fulfillment_status, to: input.fulfillmentStatus, version: input.expectedVersion + 1}), now),

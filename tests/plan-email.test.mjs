@@ -229,8 +229,10 @@ test('scheduler shares provider capacity sequentially and isolates welcome queue
       if(name==='vinext/server/fetch-handler')return {default:{fetch}};
       if(name==='../lib/welcome-email')return {processWelcomeEmailQueue:async()=>{events.push('welcome');if(failWelcome)throw new Error('private SQL failure');}};
       if(name==='../lib/plan-email')return {processPlanEmailQueue:async()=>{events.push('plan');}};
+      if(name==='../lib/material-email')return {processMaterialEmailQueue:async()=>{events.push('material');}};
+      if(name==='../lib/product-availability')return {processProductReservations:async()=>{events.push('reservations');}};
       throw new Error(name);
     }});
-    await exported.default.scheduled({},{});assert.equal(exported.default.fetch,fetch);assert.deepEqual(events,['welcome','wait:600','plan']);
+    await exported.default.scheduled({},{});assert.equal(exported.default.fetch,fetch);assert.deepEqual(events,['welcome','wait:600','plan','wait:600','material','reservations']);
   }
 });

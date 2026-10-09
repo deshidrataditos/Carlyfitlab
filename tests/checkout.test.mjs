@@ -8,6 +8,12 @@ const {catalog,validateCart}=loadProductModule('catalog');
 
 const desserts=loadProductModule('dessert-pack');
 const productOptions=loadProductModule('product-options');
+class MemberInputError extends Error {constructor(message,status=400){super(message);this.status=status;}}
+class MPRequestError extends Error {constructor(status){super('Provider rejection');this.status=status;}}
+const availability={};
+runInNewContext(ts.transpileModule(readFileSync(new URL('../lib/product-availability.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{
+ exports:availability,require:name=>name==='./catalog'?{catalog}:name==='./member-input'?{MemberInputError}:{},Date,Intl,Error,
+});
 
 // Exercise the real Worker route with isolated DB and payment API boundaries.
 const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.ts',import.meta.url),'utf8'),{
@@ -16,8 +22,8 @@ const route=ts.transpileModule(readFileSync(new URL('../app/api/checkout/route.t
 const checkoutUrl='https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=test-preference';
 const planUser={id:'12345678-1234-1234-1234-123456789abc',email:'plan-buyer@example.test',is_anonymous:false,email_confirmed_at:'2026-09-01T00:00:00Z',app_metadata:{provider:'google'}};
 
-function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}],delivery='pickup',dessertSelection,extraBody={},sessionEnabled=false,user=null,authError=null,profileError=null}={}){
- const writes=[];const calls=[];const exported={};const sessionCalls=[];
+function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMatches=true,items=[{id:'galletas',quantity:1}],delivery='pickup',dessertSelection,extraBody={},sessionEnabled=false,user=null,authError=null,profileError=null,stockError=false,rateLimited=false,providerError=null}={}){
+ const writes=[];const calls=[];const exported={};const sessionCalls=[];const reservations=[];const released=[];
  const config=enabled?{origin:'https://shop.example',live}:null;
  const session=sessionEnabled?{
   client:{
@@ -35,8 +41,11 @@ function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMa
   '@/lib/product-options':productOptions,
   '@/lib/dessert-pack':desserts,
   '@/lib/supabase-server':{memberSession:()=>session},
-  '@/lib/payment':{paymentConfig:()=>config,sellerEnvironmentMatches:async()=>sellerMatches,mpRequest:async(...args)=>{
+  '@/lib/member-input':{MemberInputError},
+  '@/lib/product-availability':{...availability,limitCheckoutAttempts:async()=>{if(rateLimited)throw new MemberInputError('Try later',429);},reserveProductAvailability:async(_db,id,items)=>{if(stockError)throw new MemberInputError('Sold out',409);reservations.push({id,items});return '2026-12-31T23:59:59.000Z';},releaseRejectedPreference:async(_db,id)=>released.push(id)},
+  '@/lib/payment':{MPRequestError,paymentConfig:()=>config,sellerEnvironmentMatches:async()=>sellerMatches,mpRequest:async(...args)=>{
    calls.push(args);
+   if(providerError)throw providerError;
    return {id:'test-preference',init_point:initPoint,sandbox_init_point:'https://sandbox.mercadopago.com.mx/checkout/legacy-test'};
   }},
  };
@@ -48,7 +57,7 @@ function checkoutHarness({live=false,enabled=true,initPoint=checkoutUrl,sellerMa
   method:'POST',headers:{Origin:'https://shop.example','Content-Type':'application/json'},
   body:JSON.stringify({items,delivery,customer:'Test buyer',dessertSelection,...extraBody}),
  });
- return {run:()=>exported.POST(request),writes,calls,sessionCalls,orderWrite:()=>writes.find(write=>write.sql.startsWith('INSERT INTO orders'))};
+ return {run:()=>exported.POST(request),writes,calls,sessionCalls,reservations,released,orderWrite:()=>writes.find(write=>write.sql.startsWith('INSERT INTO orders'))};
 }
 
 for(const live of [false,true])test(`checkout uses init_point for ${live?'live':'test seller'} mode`,async()=>{
@@ -260,5 +269,37 @@ test('only a plan purchase snapshots the confirmed Google email; client email ca
   assert.equal((await fixture.run()).status,200);
   assert.equal(fixture.orderWrite().args[8],planUser.id);
   assert.equal(fixture.orderWrite().args[10],id==='galletas'?null:planUser.email);
+ }
+});
+
+test('checkout checks availability before creating a preference and uses the reservation expiry exactly',async()=>{
+ const blocked=checkoutHarness({stockError:true});assert.equal((await blocked.run()).status,409);assert.equal(blocked.calls.length,0);
+ const allowed=checkoutHarness();assert.equal((await allowed.run()).status,200);
+ assert.equal(allowed.reservations[0].id,allowed.orderWrite().args[0]);assert.equal(allowed.calls[0][2].expiration_date_to,'2026-12-31T23:59:59.000Z');
+ assert.equal(allowed.calls[0][2].expires,true);
+ const limited=checkoutHarness({rateLimited:true});assert.equal((await limited.run()).status,429);assert.equal(limited.calls.length,0);assert.equal(limited.orderWrite(),undefined);
+});
+
+test('checkout reserves paid and included quantities together and never trusts client availability',async()=>{
+ const fixture=checkoutHarness({sessionEnabled:true,user:planUser,items:[{id:'dulce-90',quantity:1},{id:'galletas',quantity:2}],dessertSelection:[{id:'galletas',quantity:5}],extraBody:{capacity:999,availability:{galletas:'available'}}});
+ assert.equal((await fixture.run()).status,200);
+ assert.equal(fixture.reservations[0].items.find(item=>item.id==='galletas').quantity,7);
+ assert.equal(fixture.reservations[0].items.find(item=>item.id==='dulce-90').quantity,1);
+});
+
+test('requested delivery date is validated and persisted as an optional request, never sent as a payment promise',async()=>{
+ const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+ const fixture=checkoutHarness({extraBody:{requestedDeliveryDate:tomorrow}});assert.equal((await fixture.run()).status,200);
+ assert.equal(fixture.orderWrite().args[11],tomorrow);assert.equal(fixture.calls[0][2].requestedDeliveryDate,undefined);
+ for(const requestedDeliveryDate of ['2026-02-30','1999-01-01','9999-12-31','tomorrow']){
+  const bad=checkoutHarness({extraBody:{requestedDeliveryDate}});assert.equal((await bad.run()).status,400);assert.equal(bad.calls.length,0);assert.equal(bad.orderWrite(),undefined);
+ }
+ const cake=checkoutHarness({items:[{id:'pastel-zanahoria',quantity:1}],extraBody:{requestedDeliveryDate:tomorrow}});assert.equal((await cake.run()).status,400);assert.equal(cake.calls.length,0);
+});
+
+test('definitive preference rejection releases its reservation, while ambiguous failures keep capacity held',async()=>{
+ const rejected=checkoutHarness({providerError:new MPRequestError(400)});assert.equal((await rejected.run()).status,400);assert.deepEqual(rejected.released,[rejected.orderWrite().args[0]]);
+ for(const providerError of [new Error('timeout'),new MPRequestError(503)]){
+  const ambiguous=checkoutHarness({providerError});assert.equal((await ambiguous.run()).status,400);assert.equal(ambiguous.released.length,0);
  }
 });

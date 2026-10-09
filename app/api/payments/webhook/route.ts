@@ -1,6 +1,7 @@
 import {env} from 'cloudflare:workers';
 import {after} from 'next/server';
 import {enqueuePlanEmail,deliverPlanEmail,type PlanEmailBindings} from '@/lib/plan-email';
+import {reconcileProductReservation} from '@/lib/product-availability';
 import {webhookConfig,mpRequest,MPRequestError,validWebhook,reconcilePaymentSql,paymentUpdatedAt,sellerEnvironmentMatches} from '@/lib/payment';
 export async function POST(request:Request){
  const config=webhookConfig();if(!config||!env.DB)return new Response('Unavailable',{status:503});
@@ -17,6 +18,7 @@ export async function POST(request:Request){
   if(p.currency_id!=='MXN'||Math.round(p.transaction_amount*100)!==order.amount_cents||String(p.collector_id)!==config.collectorId||typeof p.live_mode!=='boolean'||(config.live&&!p.live_mode)||String(p.id)!==id)return new Response('Payment mismatch',{status:400});
   // The atomic timestamp guard prevents an older concurrent response from replacing newer state.
   await env.DB.prepare(reconcilePaymentSql).bind(String(p.id),p.status,updatedAt,order.id,String(p.id),p.status,p.status,updatedAt,String(p.id),p.status).run();
+  await reconcileProductReservation(env.DB,order.id);
   // Repeated notifications may recover an enqueue failure. The queue rechecks the stored payment.
   try{
    const bindings=env as unknown as PlanEmailBindings;

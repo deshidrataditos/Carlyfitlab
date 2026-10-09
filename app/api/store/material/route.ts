@@ -1,11 +1,34 @@
+import {env} from 'cloudflare:workers';
+import {after} from 'next/server';
 import {MemberInputError, checkMemberOrigin, memberBody} from '@/lib/member-input';
 import {memberSession, memberJson} from '@/lib/supabase-server';
 import {materialInput, storeId} from '@/lib/store-input';
 import {MATERIALS_PER_ORDER, PLAN_BUCKET, approvedMaterialOrder, canManageStore, requireStoreAdmin, requireStoreUser, storeDatabase, storeFailure, type StoreMaterial, type StoreSession} from '@/lib/store-server';
+import {deliverMaterialEmail, enqueueMaterialEmail, materialEmailStatus, type MaterialEmailStatus} from '@/lib/material-email';
 
 async function publishStorageAccess(session: StoreSession, material: StoreMaterial) {
   const result = await session.client.rpc('publish_store_material', {p_object_path: material.object_path, p_user_id: material.user_id, p_order_id: material.order_id, p_material_id: material.id});
   if (result.error || result.data !== true) throw new Error('Could not publish verified material access');
+}
+
+async function announcePublishedMaterial(db: D1Database, material: StoreMaterial): Promise<{status: MaterialEmailStatus}> {
+  // This marker is written only after Storage confirms owner access. A D1-only
+  // publication after a failed RPC must never trigger an availability email.
+  const ready = await db.prepare(`UPDATE store_materials SET access_published_at=COALESCE(access_published_at,?)
+    WHERE id=? AND state='published' AND order_id=? AND user_id=? AND EXISTS
+      (SELECT 1 FROM orders WHERE orders.id=store_materials.order_id AND orders.user_id=store_materials.user_id AND orders.status='approved')`)
+    .bind(new Date().toISOString(), material.id, material.order_id, material.user_id).run();
+  if (ready.meta.changes !== 1) throw new MemberInputError('El pedido o el material cambió. Actualiza antes de continuar.', 409);
+  try {
+    await enqueueMaterialEmail(env, material.id);
+    const status = await materialEmailStatus(env, material.id);
+    if (status === 'pending') after(async () => { await deliverMaterialEmail(env, material.id).catch(() => {}); });
+    return {status};
+  } catch {
+    // The material is already available. The scheduled recovery can queue its
+    // receipt later, and email trouble must not report a failed file upload.
+    return {status: 'retry_pending'};
+  }
 }
 
 export async function GET(request: Request) {
@@ -63,7 +86,8 @@ export async function POST(request: Request) {
         // Recover a prior access-registration failure without republishing or
         // bypassing the fresh approved-payment/owner check immediately above.
         await publishStorageAccess(session!, material);
-        return session!.finish(memberJson({material: {id: material.id, title: material.title, kind: material.kind}}));
+        const emailNotification = await announcePublishedMaterial(db, material);
+        return session!.finish(memberJson({material: {id: material.id, title: material.title, kind: material.kind}, emailNotification}));
       }
       if (material.expires_at <= new Date().toISOString()) throw new MemberInputError('La carga venció. Selecciona de nuevo el archivo.', 409);
       const object = await session!.client.storage.from(PLAN_BUCKET).info(material.object_path);
@@ -76,7 +100,8 @@ export async function POST(request: Request) {
       ]);
       if (result[0].meta.changes !== 1) throw new MemberInputError('El pedido o la carga cambió. Actualiza antes de continuar.', 409);
       await publishStorageAccess(session!, material);
-      return session!.finish(memberJson({material: {id: material.id, title: material.title, kind: material.kind}}));
+      const emailNotification = await announcePublishedMaterial(db, material);
+      return session!.finish(memberJson({material: {id: material.id, title: material.title, kind: material.kind}, emailNotification}));
     }
     throw new MemberInputError('La acción del material no es válida.');
   } catch (error) { return storeFailure(session, error); }

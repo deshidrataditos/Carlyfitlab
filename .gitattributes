@@ -1,0 +1,2 @@
+# Cloudflare D1 remote SQL parser requires LF for trigger migrations.
+drizzle/*.sql text eol=lf

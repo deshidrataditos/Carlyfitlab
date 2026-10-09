@@ -6,7 +6,7 @@ import ts from 'typescript';
 const cache=new Map();
 export function loadProductModule(name){
  const normalized=name.replace(/^\.\//,'');
- if(!['catalog','product-options','dessert-pack','cart-state'].includes(normalized))throw new Error(`Unexpected product dependency: ${name}`);
+ if(!['catalog','product-options','dessert-pack','cart-state','availability-view'].includes(normalized))throw new Error(`Unexpected product dependency: ${name}`);
  if(cache.has(normalized))return cache.get(normalized);
  const exported={};
  cache.set(normalized,exported);
